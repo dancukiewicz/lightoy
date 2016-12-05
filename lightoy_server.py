@@ -12,6 +12,47 @@ import pystache
 HTTP_PORT = 8080
 
 
+# each handler should return its response
+async def handle_message(msg):
+    handlers = {
+        'touchstart': handle_touch_start,
+        'touchmove': handle_touch_move,
+        'touchend': handle_touch_end,
+        'touchcancel': handle_touch_cancel
+    }
+    event = msg['ev']
+    if event in handlers:
+        return await handlers[event](msg)
+    else:
+        # TODO: logging
+        print("Unrecognized event:", event, "in message:", msg)
+        return None
+
+
+def pos(touches):
+    return {'pos': touches}
+
+
+async def handle_touch_start(msg):
+    print("touch start:", msg)
+    return pos(msg['touches'])
+
+
+async def handle_touch_move(msg):
+    #print("touch move:", msg)
+    return pos(msg['touches'])
+
+
+async def handle_touch_end(msg):
+    print("touch end:", msg)
+    return pos([])
+
+
+async def handle_touch_cancel(msg):
+    print("touch cancel:", msg)
+    return pos([])
+
+
 async def handle_main(request):
     template_filename = os.path.join(os.path.dirname(__file__), 'templates',
                                      'main.html.mustache')
@@ -30,8 +71,9 @@ async def handle_websocket(request):
             if msg.data == 'close':
                 await ws.close()
             else:
-                print("message: " + msg.data)
-                ws.send_str(msg.data + '/answer')
+                response = await handle_message(json.loads(msg.data))
+                if response is not None:
+                    ws.send_json(response)
         elif msg.type == aiohttp.WSMsgType.ERROR:
             print('ws connection closed with exception %s' %
                   ws.exception())
@@ -53,35 +95,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# import aiohttp.web
-# import aiohttp.log
-# import pathlib
-
-# async def hello(websocket, path):
-#     name = await websocket.recv()
-#     print("< {}".format(name))
-#
-#     greeting = "Hello {}!".format(name)
-#     await websocket.send(greeting)
-#     print("> {}".format(greeting))
-#
-# app = aiohttp.web.Application()
-# app.router.add_static('/',
-#                       pathlib.Path(pathlib.Path(__file__).parent, 'static'),
-#                       show_index=True)
-# loop = app.loop
-# handler = app.make_handler(access_log=aiohttp.log.access_logger,
-#                            host='0.0.0.0',
-#                            port=HTTP_PORT,
-#                            backlog=128)
-# loop.run_until_complete()
-
-
-# aiohttp.web.run_app(app)
-
-#start_server = websockets.serve(hello, 'localhost', 8765)
-
-
-#asyncio.get_event_loop().run_until_complete(start_server)
-#asyncio.get_event_loop().run_forever()
