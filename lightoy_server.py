@@ -6,13 +6,49 @@ import asyncio
 import json
 import os
 import pystache
+import serial
+import threading
+import time
 
 
 # TODO: command-line arg
 HTTP_PORT = 8080
+# TODO: command-line arg or autodetect
+SERIAL_DEVICE = '/dev/ttyACM0'
+SERIAL_BAUD = 115200
+REFRESH_RATE = 200
 
 
-# each handler should return its response
+# This is accessed from both the web and render threads.
+cur_touches = []
+
+
+def render():
+    touches = cur_touches
+    if len(touches) > 0:
+        return "H"
+    else:
+        return "L"
+
+
+def render_loop():
+    ser = serial.Serial(SERIAL_DEVICE, SERIAL_BAUD, timeout=None,
+                        write_timeout=None, xonxoff=False,
+                        rtscts=False, dsrdtr=False, inter_byte_timeout=None)
+    while True:
+        # Render the frame and send it out to the Teensy.
+        b = render()
+        ser.write(bytes(b, 'utf-8'))
+        ser.flush()
+        # Sleep to the next 1/REFRESH_RATE interval.
+        refresh_interval = 1 / REFRESH_RATE
+        sleep_time = refresh_interval - (time.time() % refresh_interval)
+        if sleep_time == 0:
+            sleep_time = refresh_interval
+        time.sleep(sleep_time)
+
+
+# Each handler should return its response.
 async def handle_message(msg):
     handlers = {
         'touchstart': handle_touch_start,
@@ -29,7 +65,10 @@ async def handle_message(msg):
         return None
 
 
+# TODO: pos() does two very different things
 def pos(touches):
+    global cur_touches
+    cur_touches = touches
     return {'pos': touches}
 
 
@@ -39,7 +78,6 @@ async def handle_touch_start(msg):
 
 
 async def handle_touch_move(msg):
-    #print("touch move:", msg)
     return pos(msg['touches'])
 
 
@@ -88,6 +126,8 @@ async def init(loop):
 
 
 def main():
+    render_thread = threading.Thread(target=render_loop)
+    render_thread.start()
     loop = asyncio.get_event_loop()
     app = loop.run_until_complete(init(loop))
     aiohttp.web.run_app(app)
