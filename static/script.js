@@ -34,8 +34,8 @@ function refresh(pos) {
 	el.style.width = "40";
 	el.style.height = "40";
 	el.style.position = "absolute";
-	el.style.left = p.x;
-	el.style.top = p.y;
+	el.style.left = p.x * document.body.clientWidth;
+	el.style.top = p.y * document.body.clientHeight;
 	document.body.append(el);
     });
 }
@@ -43,16 +43,19 @@ function refresh(pos) {
 
 /* TODO: clearly, these handlers need to be refactored */
 
+// TODO: comment
+function convertTouch(touch) {
+    return {
+	'x': touch.pageX / document.body.clientWidth,
+	'y': touch.pageY / document.body.clientHeight
+    }
+}
+
 document.body.addEventListener('touchstart', function(ev) {
     ev.preventDefault();
     var out = {
 	'ev': 'touchstart',
-	'touches': Array.prototype.map.call(ev.touches, function(t) {
-	    return {
-		'x': t.pageX,
-		'y': t.pageY
-	    };
-	})
+	'touches': Array.prototype.map.call(ev.touches, convertTouch)
     };
     ws.send(JSON.stringify(out));
     ws.send(JSON.stringify(out));
@@ -62,12 +65,7 @@ document.body.addEventListener('touchmove', function(ev) {
     ev.preventDefault();
     var out = {
 	'ev': 'touchmove',
-	'touches': Array.prototype.map.call(ev.touches, function(t) {
-	    return {
-		'x': t.pageX,
-		'y': t.pageY
-	    };
-	})
+	'touches': Array.prototype.map.call(ev.touches, convertTouch)
     };
     ws.send(JSON.stringify(out));
 });
@@ -76,12 +74,7 @@ document.body.addEventListener('touchend', function(ev) {
     ev.preventDefault();
     var out = {
 	'ev': 'touchend',
-	'touches': Array.prototype.map.call(ev.touches, function(t) {
-	    return {
-		'x': t.pageX,
-		'y': t.pageY
-	    };
-	})
+	'touches': Array.prototype.map.call(ev.touches, convertTouch)
     };
     ws.send(JSON.stringify(out));
 });
@@ -90,13 +83,10 @@ document.body.addEventListener('touchcancel', function(ev) {
     ev.preventDefault();
     var out = {
 	'ev': 'touchcancel',
-	'touches': Array.prototype.map.call(ev.touches, function(t) {
-	    return {
-		'x': t.pageX,
-		'y': t.pageY
-	    };
-	})
+	'touches': Array.prototype.map.call(ev.touches, convertTouch)
     };
     console.log(out);
     ws.send(JSON.stringify(out));
 });
+
+

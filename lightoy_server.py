@@ -22,13 +22,26 @@ REFRESH_RATE = 200
 # This is accessed from both the web and render threads.
 cur_touches = []
 
-
 def render():
+
     touches = cur_touches
+    touch_val = 0
     if len(touches) > 0:
-        return "H"
-    else:
-        return "L"
+        touch_val = touches[0]['x']
+
+    brightness = int(touch_val * 256)
+    if brightness > 255:
+        brightness = 255
+    elif brightness < 0:
+        brightness = 0
+    
+    return str(brightness) + "."
+
+    #touches = cur_touches
+    #if len(touches) > 0:
+    #    return "H"
+    #else:
+    #    return "L"
 
 
 def render_loop():
