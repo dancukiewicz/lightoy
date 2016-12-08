@@ -10,7 +10,7 @@ INPUT_DIMS = [
     'fade'      # float, from 0 to 1
 ]
 
-TOUCH_HIST_LENGTH = 3
+TOUCH_HIST_LENGTH = 15
 
 InputState = collections.namedtuple('InputState', INPUT_DIMS)
 
@@ -78,9 +78,15 @@ class InputProcessor:
             self.fade -= 0.005
             #
             if self.n_last_touched > 1:
+                # TODO: describe how we don't want to use too-recent history
+                if self.n_last_touched > 10:
+                    last_i = 10
+                else:
+                    last_i = self.n_last_touched - 1
+
                 # Touch was applied in at least two previous frames, and was
                 # just released.
-                diffs = self.touch_history[:, 0] - self.touch_history[:, 1]
+                diffs = self.touch_history[:, 0] - self.touch_history[:, last_i]
                 t_dx, t_dy, t_dt = diffs
                 if t_dt <= 0:
                     raise "hey, it does happen"
@@ -109,21 +115,17 @@ class InputProcessor:
                      0 to 1.
         """
         touch = touches[0]
-        self.touch_history[:, 1] = [touch['x'], touch['y'], t]
+        self._update_touch_history(touch['x'], touch['y'], t)
         self.focus_x_offset = self.focus_x - touch['x']
         self.focus_y_offset = self.focus_y - touch['y']
         self.cur_touches = touches
 
     def on_touch_move(self, touches, t):
+        touch = touches[0]
+        self._update_touch_history(touch['x'], touch['y'], t)
         self.cur_touches = touches
 
     def on_touch_end(self, t):
-        # TODO: boolean flag
-        if self.cur_touches:
-            self.n_last_touched = 2
-            touch = self.cur_touches[0]
-            self.cur_touches = []
-            self.touch_history[:, 0] = [touch['x'], touch['y'], t]
         self.cur_touches = []
 
     def on_touch_cancel(self, t):
