@@ -27,18 +27,30 @@ class InputProcessor:
     def __init__(self):
         # List of current touches, each a dict with 'x' and 'y' fields.
         self.cur_touches = []
+        # Represents the (x,y,t) locations of the previous touch locations.
+        self.touch_history = numpy.zeros((3, TOUCH_HIST_LENGTH))
+        # The number of previous consecutive state updates in which there was
+        # an active touch.
+        self.n_last_touched = 0
+
         # Fade in/out effect. Increases from 0 to 1 when touch is applied,
         # and then drops to 0 when touch is released.
         self.fade = 0.
         # The idea is for this to be something people can move around, with
-        # mass.
+        # momentum.
         # TODO: should it have mass when being moved around?
-        self.focus_x = 0
-        self.focus_y = 0
+        self.focus_x = 0.
+        self.focus_y = 0.
+        # For simulating momentum.
+        self.x_velocity = 0.
+        self.y_velocity = 0.
+        # This records the value of the focus point when the touch was first
+        # applied.
+        # TODO: more clear comment
+        self.focus_x_offset = 0.
+        self.focus_y_offset = 0.
 
-        # Represents the (x,y,t) locations of the previous touch locations.
-        self.touch_history = numpy.zeros((3, TOUCH_HIST_LENGTH))
-        pass
+        self.last_t = None
 
     def get_state(self, t):
         """"
@@ -48,40 +60,76 @@ class InputProcessor:
             An InputState namedtuple that contains the inputs to the rendering
             logic.
         """
-        if self._is_touched():
-            touch = self.cur_touches[0]
-            self.focus_x = touch['x']
-            self.focus_y = touch['y']
-            self.touch_history = numpy.roll(self.touch_history, 1, 1)
-            self.touch_history[:, 0] = [touch['x'], touch['y'], t]
+        if self.last_t:
+            dt = t - self.last_t
+        else:
+            dt = 0
+        self.last_t = t
+
+        # Load the touches so that they're consistent
+        touches = self.cur_touches
+
+        if touches:
+            touch = touches[0]
+            self.focus_x = touch['x'] + self.focus_x_offset
+            self.focus_y = touch['y'] + self.focus_y_offset
             self.fade += 0.01
         else:
-            self.fade -= 0.002
+            self.fade -= 0.005
+            #
+            if self.n_last_touched > 1:
+                # Touch was applied in at least two previous frames, and was
+                # just released.
+                diffs = self.touch_history[:, 0] - self.touch_history[:, 1]
+                t_dx, t_dy, t_dt = diffs
+                if t_dt <= 0:
+                    raise "hey, it does happen"
+                self.x_velocity = t_dx / t_dt
+                self.y_velocity = t_dy / t_dt
+            else:
+                # friction
+                resistance = 0.5
+                self.x_velocity *= (1. - resistance * dt)
+                self.y_velocity *= (1. - resistance * dt)
+                self.focus_x += self.x_velocity * dt
+                self.focus_y += self.y_velocity * dt
+            self.n_last_touched = 0
 
-        self.focus_x = numpy.clip(self.focus_x, 0.0, 1.0)
-        self.focus_y = numpy.clip(self.focus_y, 0.0, 1.0)
         self.fade = numpy.clip(self.fade, 0.0, 1.0)
 
         return InputState(focus_x=self.focus_x,
                           focus_y=self.focus_y,
                           fade=self.fade)
 
+    # TODO: These are not atomic; this is bad.
     def on_touch_start(self, touches, t):
         """
         Args:
             touches: a list of dicts with 'x' and 'y' fields, ranging from
                      0 to 1.
         """
+        touch = touches[0]
+        self.touch_history[:, 1] = [touch['x'], touch['y'], t]
+        self.focus_x_offset = self.focus_x - touch['x']
+        self.focus_y_offset = self.focus_y - touch['y']
         self.cur_touches = touches
 
     def on_touch_move(self, touches, t):
         self.cur_touches = touches
 
     def on_touch_end(self, t):
+        # TODO: boolean flag
+        if self.cur_touches:
+            self.n_last_touched = 2
+            touch = self.cur_touches[0]
+            self.cur_touches = []
+            self.touch_history[:, 0] = [touch['x'], touch['y'], t]
         self.cur_touches = []
 
     def on_touch_cancel(self, t):
         return self.on_touch_end(t)
 
-    def _is_touched(self):
-        return len(self.cur_touches) > 0
+    def _update_touch_history(self, x, y, t):
+        self.touch_history = numpy.roll(self.touch_history, 1, 1)
+        self.touch_history[:, 0] = [x, y, t]
+        self.n_last_touched += 1

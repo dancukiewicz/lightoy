@@ -48,18 +48,40 @@ class HsvEffect(Effect):
             h, s, v = hsv[:, i]
             r, g, b = colorsys.hsv_to_rgb(h, s, v)
             output[:, i] = [r, g, b]
+        return output
 
 
-class WavyEffect(Effect):
+class WavyEffect(HsvEffect):
     def __init__(self, n_leds):
         self.periods = numpy.random.rand(n_leds)
 
-    def render(self, x, t, inputs):
+    def render_hsv(self, x, t, inputs):
         n = x.shape[1]
         # Default: just make everything red, with a bit of a wavy effect.
         brightness_modulation = 0.2 * numpy.sin(t * 10 * self.periods)
-        brightness = inputs.fade * (0.5 + brightness_modulation)
-        pos_mask = numpy.exp(-10 * (x - inputs.focus_x)**2)
-        brightness = numpy.multiply(brightness, pos_mask)
-        return numpy.vstack([brightness, numpy.zeros((2, n))])
+        brightness = (0.8 + brightness_modulation)
+        pos_mask = numpy.sin((x - inputs.focus_x) * 5)**8
+
+        h = (0.5 + 0.4 * numpy.sin(inputs.focus_y * 5)) * numpy.ones((1, n))
+        s = 0.8 * numpy.ones((1, n))
+        v = ((0.3 + 0.7 * inputs.fade) *
+             numpy.multiply(brightness, pos_mask))
+        return numpy.vstack([h, s, v])
+
+
+class March(Effect):
+    """
+    Subtle marching effect.
+    """
+    def render(self, x, t, inputs):
+        n = x.shape[1]
+        brightness = numpy.sin(
+            (20 * inputs.focus_x * x - 20 * inputs.focus_y * t))**2
+        return numpy.vstack([numpy.zeros((2, n)), brightness])
+
+
+
+
+
+
 
