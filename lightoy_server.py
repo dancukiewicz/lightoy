@@ -4,6 +4,7 @@ import aiohttp
 import aiohttp.web
 import asyncio
 import json
+import numpy
 import os
 import pystache
 import serial
@@ -17,32 +18,33 @@ HTTP_PORT = 8080
 SERIAL_DEVICE = '/dev/ttyACM0'
 SERIAL_BAUD = 115200
 REFRESH_RATE = 200
-
+NUM_LEDS = 50
+OUT_HEADER = bytes("head", 'utf-8')
 
 # This is accessed from both the web and render threads.
 cur_touches = []
 
 def render():
-
     touches = cur_touches
     touch_val = 0
     if len(touches) > 0:
         touch_val = touches[0]['x']
 
-    brightness = int(touch_val * 256)
-    if brightness > 255:
-        brightness = 255
-    elif brightness < 0:
-        brightness = 0
-    
-    return str(brightness) + "."
+    touch_val = max(min(touch_val, 1.0), 0.0)
+    # we want it to range from -1 to 1
+    touch_val = 2 * touch_val - 1
 
-    #touches = cur_touches
-    #if len(touches) > 0:
-    #    return "H"
-    #else:
-    #    return "L"
+    x = numpy.linspace(-1, 1, NUM_LEDS)
+    y = numpy.exp(-10 * (x - touch_val)**2)
 
+    out_data = bytearray(OUT_HEADER)
+    for led in range(NUM_LEDS):
+        brightness = int(y[led] * 256)
+        brightness = max(min(brightness, 255), 0)
+        out_data.append(brightness)
+        out_data.append(int(brightness / 2))
+        out_data.append(int(brightness / 2))
+    return out_data
 
 def render_loop():
     ser = serial.Serial(SERIAL_DEVICE, SERIAL_BAUD, timeout=None,
@@ -50,8 +52,8 @@ def render_loop():
                         rtscts=False, dsrdtr=False, inter_byte_timeout=None)
     while True:
         # Render the frame and send it out to the Teensy.
-        b = render()
-        ser.write(bytes(b, 'utf-8'))
+        out_data = render()
+        ser.write(out_data)
         ser.flush()
         # Sleep to the next 1/REFRESH_RATE interval.
         refresh_interval = 1 / REFRESH_RATE
