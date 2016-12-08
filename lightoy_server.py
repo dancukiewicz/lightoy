@@ -4,6 +4,7 @@ import aiohttp
 import aiohttp.web
 import asyncio
 import effects
+import input
 import json
 import numpy
 import os
@@ -25,57 +26,31 @@ OUT_HEADER = bytes("head", 'utf-8')
 # time at which the server was started
 start_time = None
 
-# This is accessed from both the web and render threads.
-cur_touches = []
 
-# Fade in/out effect; varies from 0 to 1.
-fade = 0.
+def get_server_time():
+    global start_time
+    return time.time() - start_time
 
-x_touch_val = 0
-y_touch_val = 0
 
-# a list of the previous
-TOUCH_HIST_LENGTH = 3
-touch_history = numpy.zeros((TOUCH_HIST_LENGTH, 2))
-
+# a list of the active effects.
 EFFECTS = [
     effects.WavyEffect(NUM_LEDS)
 ]
+
+
+input_processor = input.InputProcessor()
 
 
 def render():
     """
     Returns a 3-by-n array representing the final color of each of the n LEDs.
     """
-    # TODO: refactor the whole input thing
-    touches = cur_touches
-    global x_touch_val
-    global y_touch_val
-    global fade
-    global touch_history
-    if len(touches) > 0:
-        touch = touches[0]
-        x_touch_val = touch['x']
-        x_touch_val = numpy.clip(x_touch_val, 0.0, 1.0)
-        y_touch_val = touch['y']
-        y_touch_val = numpy.clip(y_touch_val, 0.0, 1.0)
-        global touch_history
-        touch_history = numpy.roll(touch_history, 1, 0)
-        touch_history[0, 0] = x_touch_val
-        touch_history[0, 1] = y_touch_val
-        fade += 0.01
-    else:
-        fade -= 0.002
-
-    fade = numpy.clip(fade, 0.0, 1.0)
-
-    x = numpy.linspace(0, 1, NUM_LEDS).reshape((1, -1))
-    global start_time
-    t = time.time() - start_time
-
+    t = get_server_time()
+    inputs = input_processor.get_state(t)
+    x = numpy.linspace(0., 1., NUM_LEDS).reshape((1, -1))
     output = numpy.zeros((3, NUM_LEDS))
     for effect in EFFECTS:
-        output += effect.render(x, t)
+        output += effect.render(x, t, inputs)
     numpy.clip(output, 0., 1., out=output)
     return output
 
@@ -88,7 +63,10 @@ def get_out_data():
     output = render()
     out_data = bytearray(OUT_HEADER)
     for led in range(NUM_LEDS):
-        r, g, b = output[:, led]
+        # The LED at the end is at x=0, which is simply an artifact of how I
+        # laid them out now.
+        # TODO: make this configurable
+        r, g, b = output[:, NUM_LEDS - led - 1]
         out_data.append(int(g*255))
         out_data.append(int(r*255))
         out_data.append(int(b*255))
@@ -129,29 +107,31 @@ async def handle_message(msg):
         return None
 
 
-# TODO: pos() does two very different things
 def pos(touches):
-    global cur_touches
-    cur_touches = touches
     return {'pos': touches}
 
 
 async def handle_touch_start(msg):
+    touches = msg['touches']
+    input_processor.on_touch_start(touches, get_server_time())
     print("touch start:", msg)
-    return pos(msg['touches'])
+    return pos(touches)
 
 
 async def handle_touch_move(msg):
-    return pos(msg['touches'])
-
+    touches = msg['touches']
+    input_processor.on_touch_move(touches, get_server_time())
+    return pos(touches)
 
 async def handle_touch_end(msg):
+    input_processor.on_touch_end(get_server_time())
     print("touch end:", msg)
     return pos([])
 
 
 async def handle_touch_cancel(msg):
-    print("touch cancel:", msg)
+    input_processor.on_touch_end(get_server_time())
+    print("touch end:", msg)
     return pos([])
 
 

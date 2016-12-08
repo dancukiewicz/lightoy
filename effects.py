@@ -1,6 +1,7 @@
 import colorsys
 import numpy
 
+
 class Effect:
     """
     TODO: docstring
@@ -8,7 +9,7 @@ class Effect:
     def __init__(self, n_leds):
         pass
 
-    def render(self, x, t):
+    def render(self, x, t, input):
         """
         Determines the brightness and color of an LED at a given point in space
             and time. Multiple effects can be simultaneously used; in that case,
@@ -19,6 +20,8 @@ class Effect:
                 location of each point can range from 0 to 1.
             t: the time, in floating point seconds after the server was started.
                Can be assumed to have millisecond accuracy.
+            input: An InputState named tuple containing information about the
+               current input.
         Returns:
             An 3-by-n array representing the desired R, G, and B values for an
             LED that is present at a given point in space. These should range
@@ -28,18 +31,18 @@ class Effect:
 
 
 class HsvEffect(Effect):
-    def render_hsv(self, x, t):
+    def render_hsv(self, x, t, inputs):
         """
         Returns:
             A 3-by n array representing the desired H, S, and V values.
         """
         raise "not implemented"
 
-    def render(self, x, t):
+    def render(self, x, t, inputs):
         # TODO: will this ever be a perf problem?
         # TODO: This hasn't actually been tested yet
         n = x.shape[1]
-        hsv = self.render_hsv(x, t)
+        hsv = self.render_hsv(x, t, inputs)
         output = numpy.zeros((3, n))
         for i in range(n):
             h, s, v = hsv[:, i]
@@ -51,10 +54,12 @@ class WavyEffect(Effect):
     def __init__(self, n_leds):
         self.periods = numpy.random.rand(n_leds)
 
-    def render(self, x, t):
+    def render(self, x, t, inputs):
         n = x.shape[1]
         # Default: just make everything red, with a bit of a wavy effect.
         brightness_modulation = 0.2 * numpy.sin(t * 10 * self.periods)
-        brightness = 0.5 + brightness_modulation
+        brightness = inputs.fade * (0.5 + brightness_modulation)
+        pos_mask = numpy.exp(-10 * (x - inputs.focus_x)**2)
+        brightness = numpy.multiply(brightness, pos_mask)
         return numpy.vstack([brightness, numpy.zeros((2, n))])
 
