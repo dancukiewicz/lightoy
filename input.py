@@ -73,7 +73,7 @@ class InputProcessor:
             touch = touches[0]
             self.focus_x = touch['x'] + self.focus_x_offset
             self.focus_y = touch['y'] + self.focus_y_offset
-            self.fade += 0.01
+            self.fade += 0.02
         else:
             self.fade -= 0.005
             #
@@ -90,8 +90,20 @@ class InputProcessor:
                 t_dx, t_dy, t_dt = diffs
                 if t_dt <= 0:
                     raise "hey, it does happen"
+
+                # TODO: param
+                max_velocity = 3.
+
                 self.x_velocity = t_dx / t_dt
+                if abs(self.x_velocity) > max_velocity:
+                    self.x_velocity = numpy.sign(self.x_velocity) * max_velocity
+
                 self.y_velocity = t_dy / t_dt
+                if abs(self.y_velocity) > max_velocity:
+                    self.y_velocity = numpy.sign(self.y_velocity) * max_velocity
+
+                print (self.x_velocity, self.y_velocity)
+
             else:
                 # friction
                 resistance = 0.5

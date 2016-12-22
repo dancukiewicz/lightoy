@@ -23,7 +23,7 @@ class Effect:
             input: An InputState named tuple containing information about the
                current input.
         Returns:
-            An 3-by-n array representing the desired R, G, and B values for an
+            An 3-by-n array repreAsenting the desired R, G, and B values for an
             LED that is present at a given point in space. These should range
             from 0 to 1.
         """
@@ -56,15 +56,18 @@ class WavyEffect(HsvEffect):
         self.periods = numpy.random.rand(n_leds)
 
     def render_hsv(self, x, t, inputs):
+        # TODO: params
         n = x.shape[1]
         # Default: just make everything red, with a bit of a wavy effect.
-        brightness_modulation = 0.2 * numpy.sin(t * 10 * self.periods)
-        brightness = (0.8 + brightness_modulation)
+        brightness_modulation = (
+            numpy.sin(t * 10 * self.periods))
+        brightness = ((0.8 - 0.1 * inputs.fade)
+                      + (0.2 + 0.1 * inputs.fade) * brightness_modulation)
         pos_mask = numpy.sin((x - inputs.focus_x) * 5)**8
 
-        h = (0.5 + 0.4 * numpy.sin(inputs.focus_y * 5)) * numpy.ones((1, n))
+        h = (0.5 + 0.5 * numpy.sin(inputs.focus_y * 2)) * numpy.ones((1, n))
         s = 0.8 * numpy.ones((1, n))
-        v = ((0.3 + 0.7 * inputs.fade) *
+        v = ((0.25 + 0.75 * inputs.fade) *
              numpy.multiply(brightness, pos_mask))
         return numpy.vstack([h, s, v])
 
@@ -74,6 +77,7 @@ class March(Effect):
     Subtle marching effect.
     """
     def render(self, x, t, inputs):
+        # TODO: params
         n = x.shape[1]
         brightness = numpy.sin(
             (20 * inputs.focus_x * x - 20 * inputs.focus_y * t))**2
