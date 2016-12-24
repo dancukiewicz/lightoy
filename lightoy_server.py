@@ -20,7 +20,7 @@ HTTP_PORT = 8080
 SERIAL_DEVICE = '/dev/ttyACM0'
 SERIAL_BAUD = 115200
 REFRESH_RATE = 200
-NUM_LEDS = 50
+NUM_LEDS = 250
 OUT_HEADER = bytes("head", 'utf-8')
 
 # time at which the server was started
@@ -34,7 +34,8 @@ def get_server_time():
 
 # a list of the active effects.
 EFFECTS = [
-    effects.WavyEffect(NUM_LEDS)
+    # effects.WavyEffect(NUM_LEDS)
+    effects.Wander(NUM_LEDS)
 ]
 
 
@@ -65,7 +66,7 @@ def get_out_data():
     for led in range(NUM_LEDS):
         # The LED at the end is at x=0, which is simply an artifact of how I
         # laid them out now.
-        # TODO: make this configurable
+        # TODO: make the color order configurable
         r, g, b = output[:, NUM_LEDS - led - 1]
         out_data.append(int(g*255))
         out_data.append(int(r*255))
