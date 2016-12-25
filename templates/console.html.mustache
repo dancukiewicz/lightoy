@@ -1,0 +1,29 @@
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width"> 
+    <style> 
+      button {
+        padding: 5px;
+      }
+    </style>
+    <title>Lightoy</title>
+  </head>
+  <body>
+    <h1>Effect: {{current_effect.name}}</h1>
+    <h2>Other effects</h2>
+    <form action="/console/effect" method="post">
+      {{#other_effects}}
+        <input type="submit" name="effect" value="{{name}}" />
+        &nbsp;&nbsp;&nbsp;
+      {{/other_effects}}
+    </form>
+    <h2>Sliders</h2>
+    <form action="/console/sliders" method="post">
+      {{#sliders}}
+        <input type="text" name="{{name}}" value="{{cur_value}}" />&nbsp;&nbsp;{{name}}<br>
+      {{/sliders}}
+      <button type="submit">Set</button>
+    </form>
+    <script src="/static/console.js"></script>
+  </body>
+</html>

@@ -9,7 +9,7 @@ class Effect:
     def __init__(self, n_leds):
         pass
 
-    def render(self, x, t, input):
+    def render(self, x, t, input, slider_values):
         """
         Determines the brightness and color of an LED at a given point in space
             and time. Multiple effects can be simultaneously used; in that case,
@@ -39,8 +39,6 @@ class Wander(Effect):
     low or high bound, the sign of that component of the vector is reversed.
     # TODO: write this more coherently
     """
-    SPEED = 0.3  # length of these vectors
-
     last_t = None
 
     def __init__(self, n_leds):
@@ -49,13 +47,13 @@ class Wander(Effect):
         self.directions = numpy.zeros((3, n_leds))
         for i in range(n_leds):
             v = numpy.random.rand(3)
-            v = (v / numpy.linalg.norm(v)) * self.SPEED
+            v = (v / numpy.linalg.norm(v))
             self.directions[:, i] = v
 
 
-    def render(self, x, t, inputs):
+    def render(self, x, t, inputs, slider_values):
         if self.last_t:
-            t_diff = t - self.last_t
+            t_diff = t - self.last_t * slider_values['speed']
         else:
             t_diff = 0
 
@@ -74,18 +72,18 @@ class Wander(Effect):
         return self.colors.copy()
 
 class HsvEffect(Effect):
-    def render_hsv(self, x, t, inputs):
+    def render_hsv(self, x, t, inputs, slider_values):
         """
         Returns:
             A 3-by n array representing the desired H, S, and V values.
         """
         raise "not implemented"
 
-    def render(self, x, t, inputs):
+    def render(self, x, t, inputs, slider_values):
         # TODO: will this ever be a perf problem?
         # TODO: This hasn't actually been tested yet
         n = x.shape[1]
-        hsv = self.render_hsv(x, t, inputs)
+        hsv = self.render_hsv(x, t, inputs, slider_values)
         output = numpy.zeros((3, n))
         for i in range(n):
             h, s, v = hsv[:, i]
@@ -98,7 +96,7 @@ class WavyEffect(HsvEffect):
     def __init__(self, n_leds):
         self.periods = numpy.random.rand(n_leds)
 
-    def render_hsv(self, x, t, inputs):
+    def render_hsv(self, x, t, inputs, slider_values):
         # TODO: params
         n = x.shape[1]
         # Default: just make everything red, with a bit of a wavy effect.
@@ -119,7 +117,7 @@ class March(Effect):
     """
     Subtle marching effect.
     """
-    def render(self, x, t, inputs):
+    def render(self, x, t, inputs, slider_values):
         # TODO: params
         n = x.shape[1]
         brightness = numpy.sin(

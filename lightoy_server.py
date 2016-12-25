@@ -3,6 +3,7 @@
 import aiohttp
 import aiohttp.web
 import asyncio
+from collections import namedtuple
 import effects
 import input
 import json
@@ -22,6 +23,9 @@ SERIAL_BAUD = 115200
 REFRESH_RATE = 200
 NUM_LEDS = 250
 OUT_HEADER = bytes("head", 'utf-8')
+# True to test out locally
+NO_SERIAL = True
+
 
 # time at which the server was started
 start_time = None
@@ -31,12 +35,30 @@ def get_server_time():
     global start_time
     return time.time() - start_time
 
+# Defines  a parameter that goes into an effect
+Slider = namedtuple('Slider', ['name', 'min_value', 'max_value',
+                               'default_value'])
 
-# a list of the active effects.
-EFFECTS = [
-    # effects.WavyEffect(NUM_LEDS)
-    effects.Wander(NUM_LEDS)
-]
+
+class EffectInfo:
+    def __init__(self, effect, sliders):
+        self.effect = effect
+        self.sliders = sliders
+        self.slider_values = {
+            slider.name: slider.default_value
+            for slider in sliders}
+
+    def set_slider(self, name, value):
+        self.slider_values[name] = value
+
+# effect name => (effect, list of sliders)
+EFFECTS = {
+    'wavy': EffectInfo(effects.WavyEffect(NUM_LEDS), []),
+    'wander': EffectInfo(effects.Wander(NUM_LEDS),
+                         [Slider('speed', 0, 2, 0.3)])
+}
+
+current_effect = 'wander'
 
 
 input_processor = input.InputProcessor()
@@ -49,9 +71,9 @@ def render():
     t = get_server_time()
     inputs = input_processor.get_state(t)
     x = numpy.linspace(0., 1., NUM_LEDS).reshape((1, -1))
-    output = numpy.zeros((3, NUM_LEDS))
-    for effect in EFFECTS:
-        output += effect.render(x, t, inputs)
+    effect = EFFECTS[current_effect]
+    # TODO: naming becomes awkward here
+    output = effect.effect.render(x, t, inputs, effect.slider_values)
     numpy.clip(output, 0., 1., out=output)
     return output
 
@@ -75,14 +97,18 @@ def get_out_data():
 
 
 def render_loop():
-    ser = serial.Serial(SERIAL_DEVICE, SERIAL_BAUD, timeout=None,
-                        write_timeout=None, xonxoff=False,
-                        rtscts=False, dsrdtr=False, inter_byte_timeout=None)
+    if NO_SERIAL:
+        ser = None
+    else:
+        ser = serial.Serial(SERIAL_DEVICE, SERIAL_BAUD, timeout=None,
+                            write_timeout=None, xonxoff=False,
+                            rtscts=False, dsrdtr=False, inter_byte_timeout=None)
     while True:
         # Render the frame and send it out to the Teensy.
         out_data = get_out_data()
-        ser.write(out_data)
-        ser.flush()
+        if not NO_SERIAL:
+            ser.write(out_data)
+            ser.flush()
         # Sleep to the next 1/REFRESH_RATE interval.
         refresh_interval = 1 / REFRESH_RATE
         sleep_time = refresh_interval - (time.time() % refresh_interval)
@@ -136,16 +162,67 @@ async def handle_touch_cancel(msg):
     return pos([])
 
 
-async def handle_main(request):
+async def handle_touchpad_request(request):
     template_filename = os.path.join(os.path.dirname(__file__), 'templates',
-                                     'main.html.mustache')
+                                     'touchpad.html.mustache')
     template = open(template_filename, 'r').read()
     text = pystache.render(template, {})
     return aiohttp.web.Response(text=text,
                                 headers={'content-type': 'text/html'})
 
 
-async def handle_websocket(request):
+async def handle_console_request(request):
+    template_filename = os.path.join(os.path.dirname(__file__), 'templates',
+                                     'console.html.mustache')
+    template = open(template_filename, 'r').read()
+
+    cur_effect = {'name': current_effect}
+
+    effect = EFFECTS[current_effect]
+    slider_data = [{
+        'name': slider.name,
+        'min_value': slider.min_value,
+        'max_value': slider.max_value,
+        'default_value': slider.default_value,
+        'cur_value': effect.slider_values[slider.name]
+    } for slider in effect.sliders]
+
+    other_effects = []
+    for effect_name in EFFECTS:
+        if effect_name != current_effect:
+            other_effects.append({'name': effect_name})
+
+    text = pystache.render(template, {
+        'current_effect': cur_effect,
+        'other_effects': other_effects,
+        'sliders': slider_data,
+        })
+    return aiohttp.web.Response(text=text,
+                                headers={'content-type': 'text/html'})
+
+
+async def handle_effect_request(request):
+    global current_effect
+    print(request)
+    data = await request.post()
+    current_effect = data['effect']
+    return aiohttp.web.Response(status=302,
+                                headers={'Location': '/console'})
+
+
+async def handle_sliders_request(request):
+    data = await request.post()
+    effect = EFFECTS[current_effect]
+    for slider in  effect.sliders:
+        if slider.name in data:
+            value = float(data[slider.name])
+            print("setting slider: %s to %f" % (slider.name, value))
+            effect.set_slider(slider.name, value)
+    return aiohttp.web.Response(status=302,
+                                headers={'Location': '/console'})
+
+
+async def handle_websocket_request(request):
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
 
@@ -164,9 +241,14 @@ async def handle_websocket(request):
 
 async def init(loop):
     app = aiohttp.web.Application(loop=loop)
-    app.router.add_get('/', handle_main)
-    app.router.add_get('/ws', handle_websocket)
+    app.router.add_get('/', handle_touchpad_request)
+    app.router.add_get('/console', handle_console_request)
+    app.router.add_post('/console/effect', handle_effect_request)
+    app.router.add_post('/console/sliders', handle_sliders_request)
+    app.router.add_get('/ws', handle_websocket_request)
     app.router.add_static('/static', 'static', name='static')
+
+
     return app
 
 
