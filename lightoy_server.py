@@ -46,7 +46,7 @@ class EffectInfo:
         self.sliders = sliders or []
         self.slider_values = {
             slider.name: slider.default_value
-            for slider in sliders}
+            for slider in self.sliders}
 
     def set_slider(self, name, value):
         self.slider_values[name] = value
