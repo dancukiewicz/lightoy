@@ -53,11 +53,11 @@ class Wander(Effect):
 
     def render(self, x, t, inputs, slider_values):
         if self.last_t:
-            t_diff = t - self.last_t * slider_values['speed']
+            t_diff = t - self.last_t
         else:
             t_diff = 0
 
-        self.colors += self.directions * t_diff
+        self.colors += self.directions * t_diff * slider_values['speed']
 
         for c in range(3):
             for led in range(self.n_leds):
@@ -123,10 +123,3 @@ class March(Effect):
         brightness = numpy.sin(
             (20 * inputs.focus_x * x - 20 * inputs.focus_y * t))**2
         return numpy.vstack([numpy.zeros((2, n)), brightness])
-
-
-
-
-
-
-

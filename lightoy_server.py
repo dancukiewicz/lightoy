@@ -24,7 +24,7 @@ REFRESH_RATE = 200
 NUM_LEDS = 250
 OUT_HEADER = bytes("head", 'utf-8')
 # True to test out locally
-NO_SERIAL = True
+NO_SERIAL = False
 
 
 # time at which the server was started
@@ -41,9 +41,9 @@ Slider = namedtuple('Slider', ['name', 'min_value', 'max_value',
 
 
 class EffectInfo:
-    def __init__(self, effect, sliders):
+    def __init__(self, effect, sliders=None):
         self.effect = effect
-        self.sliders = sliders
+        self.sliders = sliders or []
         self.slider_values = {
             slider.name: slider.default_value
             for slider in sliders}
@@ -53,9 +53,10 @@ class EffectInfo:
 
 # effect name => (effect, list of sliders)
 EFFECTS = {
-    'wavy': EffectInfo(effects.WavyEffect(NUM_LEDS), []),
+    'wavy': EffectInfo(effects.WavyEffect(NUM_LEDS)),
     'wander': EffectInfo(effects.Wander(NUM_LEDS),
-                         [Slider('speed', 0, 2, 0.3)])
+                         [Slider('speed', 0, 2, 0.3)]),
+    'march': EffectInfo(effects.March(NUM_LEDS))
 }
 
 current_effect = 'wander'
