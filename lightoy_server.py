@@ -56,13 +56,30 @@ EFFECTS = {
     'wavy': EffectInfo(effects.WavyEffect(NUM_LEDS)),
     'wander': EffectInfo(effects.Wander(NUM_LEDS),
                          [Slider('speed', 0, 2, 0.3)]),
-    'march': EffectInfo(effects.March(NUM_LEDS))
+    'march': EffectInfo(effects.March(NUM_LEDS)),
+    'wipe': EffectInfo(effects.VerticalWipe(NUM_LEDS)),
+
+
 }
 
-current_effect = 'wander'
+GLOBAL_SLIDERS = [
+    # LEDs per twist (300 LEDs, ~17.5 twists)
+    Slider('slope', 0, 30, 17.143)
+]
+
+current_effect = 'wipe'
 
 
 input_processor = input.InputProcessor()
+
+
+def get_locations(slider_values):
+    """Returns a 3-by-NUM_LEDS array representing the x,y,z positions of the
+    LEDs. Each dimension ranges from 0 to 1.
+    X: right, y: out from viewer, z: up
+    """
+
+
 
 
 def render():
@@ -211,10 +228,23 @@ async def handle_effect_request(request):
                                 headers={'Location': '/console'})
 
 
-async def handle_sliders_request(request):
+async def handle_global_sliders_request(request):
     data = await request.post()
     effect = EFFECTS[current_effect]
-    for slider in  effect.sliders:
+    for slider in effect.sliders:
+        if slider.name in data:
+            value = float(data[slider.name])
+            print("setting slider: %s to %f" % (slider.name, value))
+            effect.set_slider(slider.name, value)
+    return aiohttp.web.Response(status=302,
+                                headers={'Location': '/console'})
+
+
+# TODO: code duplication
+async def handle_effect_sliders_request(request):
+    data = await request.post()
+    effect = EFFECTS[current_effect]
+    for slider in effect.sliders:
         if slider.name in data:
             value = float(data[slider.name])
             print("setting slider: %s to %f" % (slider.name, value))
@@ -248,8 +278,6 @@ async def init(loop):
     app.router.add_post('/console/sliders', handle_sliders_request)
     app.router.add_get('/ws', handle_websocket_request)
     app.router.add_static('/static', 'static', name='static')
-
-
     return app
 
 

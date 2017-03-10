@@ -23,7 +23,7 @@ class Effect:
             input: An InputState named tuple containing information about the
                current input.
         Returns:
-            An 3-by-n array repreAsenting the desired R, G, and B values for an
+            An 3-by-n array representing the desired R, G, and B values for an
             LED that is present at a given point in space. These should range
             from 0 to 1.
         """
@@ -111,6 +111,12 @@ class WavyEffect(HsvEffect):
         v = ((0.25 + 0.75 * inputs.fade) *
              numpy.multiply(brightness, pos_mask))
         return numpy.vstack([h, s, v])
+
+
+
+class VerticalWipe(Effect):
+    def render(self, x, t, inputs, slider_values):
+        n = x.shape[2]
 
 
 class March(Effect):
