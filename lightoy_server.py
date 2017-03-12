@@ -20,7 +20,7 @@ HTTP_PORT = 8080
 SERIAL_DEVICE = '/dev/ttyACM0'
 SERIAL_BAUD = 115200
 REFRESH_RATE = 200
-NUM_LEDS = 250
+NUM_LEDS = 300
 OUT_HEADER = bytes("head", 'utf-8')
 # True to test out locally
 NO_SERIAL = False
@@ -41,6 +41,7 @@ class Slider:
         self.min_value = min_value
         self.max_value = max_value
         self.name = name
+        self.default_value = default_value
         self.value = default_value
 
     def set_value(self, value):
@@ -76,7 +77,7 @@ CURRENT_EFFECT = 'wipe'
 
 GLOBAL_SLIDERS = [
     # total number of twists taken by the spiral
-    Slider('twists',     0., 30., 17.5),
+    Slider('twists',     0., 30., 17.55),
     Slider('brightness', 0.,  1.,  1.),
 ]
 
@@ -109,15 +110,19 @@ def get_locations():
     LEDs. Each dimension ranges from 0 to 1.
     X: right, y: out from viewer, z: up
     """
+    # orientation of spiral, looking from the top
+    # 1 for counterclockwise, -1 for clockwise
+    direction = -1
+
     twists = SLIDERS.global_sliders['twists'].get_value()
     # angle in x-y plane swept between two consequent LEDs
     theta_per_led = 2. * numpy.pi * twists / NUM_LEDS
     thetas = numpy.array(range(NUM_LEDS)) * theta_per_led
     locations = numpy.zeros((3, NUM_LEDS))
     # X
-    locations[0, :] = numpy.cos(thetas)
+    locations[0, :] = numpy.cos(thetas * direction)
     # Y
-    locations[1, :] = numpy.sin(thetas)
+    locations[1, :] = numpy.sin(thetas * direction)
     # Z
     locations[2, :] = numpy.linspace(-1., 1., NUM_LEDS)
     return locations
@@ -240,13 +245,20 @@ async def handle_console_request(request):
     cur_effect = {'name': CURRENT_EFFECT}
 
     effect = EFFECTS[CURRENT_EFFECT]
-    slider_data = [{
-        'name': slider.name,
-        'min_value': slider.min_value,
-        'max_value': slider.max_value,
-        'default_value': slider.default_value,
-        'cur_value': effect.slider_values[slider.name]
-    } for slider in effect.sliders]
+
+    def get_slider_data(slider):
+        return {
+            'name': slider.name,
+            'min_value': slider.min_value,
+            'max_value': slider.max_value,
+            'default_value': slider.default_value,
+            'cur_value': slider.get_value(),
+        }
+
+    effect_slider_data = [get_slider_data(slider)
+        for slider_name, slider in SLIDERS.effect_sliders[effect.name].items()]
+    global_slider_data = [get_slider_data(slider)
+        for slider_name, slider in SLIDERS.global_sliders.items()]
 
     other_effects = []
     for effect_name in EFFECTS:
@@ -256,7 +268,8 @@ async def handle_console_request(request):
     text = pystache.render(template, {
         'current_effect': cur_effect,
         'other_effects': other_effects,
-        'sliders': slider_data,
+        'effect_sliders': effect_slider_data,
+        'global_sliders': global_slider_data
         })
     return aiohttp.web.Response(text=text,
                                 headers={'content-type': 'text/html'})

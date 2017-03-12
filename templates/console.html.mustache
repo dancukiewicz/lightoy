@@ -17,14 +17,23 @@
         &nbsp;&nbsp;&nbsp;
       {{/other_effects}}
     </form>
-    <h2>Sliders</h2>
+    <h2>Effect Sliders</h2>
     <form action="/console/sliders" method="post">
-      {{#sliders}}
+      {{#effect_sliders}}
         <input type="text" name="{{name}}" value="{{cur_value}}" />&nbsp;&nbsp;{{name}}<br>
-      {{/sliders}}
+      {{/effect_sliders}}
       <input type="hidden" name="effect" value="{{current_effect.name}}" />
       <button type="submit">Set</button>
     </form>
+    <h2>Global Sliders</h2>
+    <form action="/console/sliders" method="post">
+      {{#global_sliders}}
+        <input type="text" name="{{name}}" value="{{cur_value}}" />&nbsp;&nbsp;{{name}}<br>
+      {{/global_sliders}}
+      <input type="hidden" name="effect" value="global" />
+      <button type="submit">Set</button>
+    </form>
+
     <script src="/static/console.js"></script>
   </body>
 </html>

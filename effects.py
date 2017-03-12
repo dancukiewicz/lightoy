@@ -116,9 +116,7 @@ class WavyEffect(HsvEffect):
 class VerticalWipe(Effect):
     def render(self, X, t, inputs, slider_values):
         x = X[0, :]
-
-        #brightness_modulation = numpy.sin((z - 0.2 * t) * 5)
-        brightness = numpy.ones(len(x)) * 0.1 # (x + 1.) / 2.
+        brightness = 0.2 * 1. / (1. + numpy.exp(-20 * x))
         return numpy.vstack([brightness, brightness, brightness])
 
 
