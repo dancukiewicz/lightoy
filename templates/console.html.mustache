@@ -22,6 +22,7 @@
       {{#sliders}}
         <input type="text" name="{{name}}" value="{{cur_value}}" />&nbsp;&nbsp;{{name}}<br>
       {{/sliders}}
+      <input type="hidden" name="effect" value="{{current_effect.name}}" />
       <button type="submit">Set</button>
     </form>
     <script src="/static/console.js"></script>

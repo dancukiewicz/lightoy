@@ -3,7 +3,6 @@
 import aiohttp
 import aiohttp.web
 import asyncio
-from collections import namedtuple
 import effects
 import input
 import json
@@ -28,58 +27,100 @@ NO_SERIAL = False
 
 
 # time at which the server was started
-start_time = None
+START_TIME = None
 
 
 def get_server_time():
-    global start_time
-    return time.time() - start_time
+    global START_TIME
+    return time.time() - START_TIME
+
 
 # Defines  a parameter that goes into an effect
-Slider = namedtuple('Slider', ['name', 'min_value', 'max_value',
-                               'default_value'])
+class Slider:
+    def __init__(self, name, min_value, max_value, default_value):
+        self.min_value = min_value
+        self.max_value = max_value
+        self.name = name
+        self.value = default_value
+
+    def set_value(self, value):
+        if value < self.min_value or value > self.max_value:
+            raise Exception("Value given (%f) can't exceed bounds [%f, %f]" %
+                            (value, self.min_value, self.max_value))
+        self.value = value
+
+    def get_value(self):
+        return self.value
 
 
 class EffectInfo:
-    def __init__(self, effect, sliders=None):
+    def __init__(self, name, effect, sliders=None):
+        self.name = name
         self.effect = effect
         self.sliders = sliders or []
-        self.slider_values = {
-            slider.name: slider.default_value
-            for slider in self.sliders}
 
-    def set_slider(self, name, value):
-        self.slider_values[name] = value
 
 # effect name => (effect, list of sliders)
-EFFECTS = {
-    'wavy': EffectInfo(effects.WavyEffect(NUM_LEDS)),
-    'wander': EffectInfo(effects.Wander(NUM_LEDS),
-                         [Slider('speed', 0, 2, 0.3)]),
-    'march': EffectInfo(effects.March(NUM_LEDS)),
-    'wipe': EffectInfo(effects.VerticalWipe(NUM_LEDS)),
-
-
-}
-
-GLOBAL_SLIDERS = [
-    # LEDs per twist (300 LEDs, ~17.5 twists)
-    Slider('slope', 0, 30, 17.143)
+# TODO: effect name => value
+EFFECT_LIST = [
+    EffectInfo('wavy', effects.WavyEffect(NUM_LEDS)),
+    EffectInfo('wander', effects.Wander(NUM_LEDS),
+               [Slider('speed', 0, 2, 0.3)]),
+    EffectInfo('march', effects.March(NUM_LEDS)),
+    EffectInfo('wipe', effects.VerticalWipe(NUM_LEDS)),
 ]
 
-current_effect = 'wipe'
+EFFECTS = {effect.name: effect for effect in EFFECT_LIST}
+
+CURRENT_EFFECT = 'wipe'
+
+GLOBAL_SLIDERS = [
+    # total number of twists taken by the spiral
+    Slider('twists',     0., 30., 17.5),
+    Slider('brightness', 0.,  1.,  1.),
+]
 
 
-input_processor = input.InputProcessor()
+class Sliders:
+    # effect name => slider name => slider
+    effect_sliders = {}
+    # slider name => slider
+    global_sliders = {}
+
+    def __init__(self, effects, global_sliders):
+        for effect_name, effect_info in effects.items():
+            self.effect_sliders[effect_name] = {
+                slider.name: slider for slider in effect_info.sliders
+            }
+        self.global_sliders = {
+            slider.name: slider for slider in global_sliders
+        }
+
+# current slider values
+
+SLIDERS = Sliders(EFFECTS, GLOBAL_SLIDERS)
+
+INPUT_PROCESSOR = input.InputProcessor()
 
 
-def get_locations(slider_values):
+# TODO: split out into module
+def get_locations():
     """Returns a 3-by-NUM_LEDS array representing the x,y,z positions of the
     LEDs. Each dimension ranges from 0 to 1.
     X: right, y: out from viewer, z: up
     """
-
-
+    twists = SLIDERS.global_sliders['twists'].get_value()
+    # angle in x-y plane swept between two consequent LEDs
+    theta_per_led = 2. * numpy.pi * twists / NUM_LEDS
+    thetas = numpy.array(range(NUM_LEDS)) * theta_per_led
+    locations = numpy.zeros((3, NUM_LEDS))
+    # X
+    locations[0, :] = numpy.cos(thetas)
+    # Y
+    locations[1, :] = numpy.sin(thetas)
+    # Z
+    locations[2, :] = numpy.linspace(-1., 1., NUM_LEDS)
+    return locations
 
 
 def render():
@@ -87,11 +128,13 @@ def render():
     Returns a 3-by-n array representing the final color of each of the n LEDs.
     """
     t = get_server_time()
-    inputs = input_processor.get_state(t)
-    x = numpy.linspace(0., 1., NUM_LEDS).reshape((1, -1))
-    effect = EFFECTS[current_effect]
+    inputs = INPUT_PROCESSOR.get_state(t)
+    x = get_locations()
+
+    effect = EFFECTS[CURRENT_EFFECT]
     # TODO: naming becomes awkward here
-    output = effect.effect.render(x, t, inputs, effect.slider_values)
+    output = effect.effect.render(x, t, inputs,
+                                  SLIDERS.effect_sliders[effect.name])
     numpy.clip(output, 0., 1., out=output)
     return output
 
@@ -158,24 +201,24 @@ def pos(touches):
 
 async def handle_touch_start(msg):
     touches = msg['touches']
-    input_processor.on_touch_start(touches, get_server_time())
+    INPUT_PROCESSOR.on_touch_start(touches, get_server_time())
     print("touch start:", msg)
     return pos(touches)
 
 
 async def handle_touch_move(msg):
     touches = msg['touches']
-    input_processor.on_touch_move(touches, get_server_time())
+    INPUT_PROCESSOR.on_touch_move(touches, get_server_time())
     return pos(touches)
 
 async def handle_touch_end(msg):
-    input_processor.on_touch_end(get_server_time())
+    INPUT_PROCESSOR.on_touch_end(get_server_time())
     print("touch end:", msg)
     return pos([])
 
 
 async def handle_touch_cancel(msg):
-    input_processor.on_touch_end(get_server_time())
+    INPUT_PROCESSOR.on_touch_end(get_server_time())
     print("touch end:", msg)
     return pos([])
 
@@ -194,9 +237,9 @@ async def handle_console_request(request):
                                      'console.html.mustache')
     template = open(template_filename, 'r').read()
 
-    cur_effect = {'name': current_effect}
+    cur_effect = {'name': CURRENT_EFFECT}
 
-    effect = EFFECTS[current_effect]
+    effect = EFFECTS[CURRENT_EFFECT]
     slider_data = [{
         'name': slider.name,
         'min_value': slider.min_value,
@@ -207,7 +250,7 @@ async def handle_console_request(request):
 
     other_effects = []
     for effect_name in EFFECTS:
-        if effect_name != current_effect:
+        if effect_name != CURRENT_EFFECT:
             other_effects.append({'name': effect_name})
 
     text = pystache.render(template, {
@@ -220,35 +263,27 @@ async def handle_console_request(request):
 
 
 async def handle_effect_request(request):
-    global current_effect
+    global CURRENT_EFFECT
     print(request)
     data = await request.post()
-    current_effect = data['effect']
+    CURRENT_EFFECT = data['effect']
     return aiohttp.web.Response(status=302,
                                 headers={'Location': '/console'})
 
 
-async def handle_global_sliders_request(request):
+async def handle_sliders_request(request):
     data = await request.post()
-    effect = EFFECTS[current_effect]
-    for slider in effect.sliders:
-        if slider.name in data:
-            value = float(data[slider.name])
-            print("setting slider: %s to %f" % (slider.name, value))
-            effect.set_slider(slider.name, value)
-    return aiohttp.web.Response(status=302,
-                                headers={'Location': '/console'})
+    effect_name = data['effect']
+    if effect_name == 'global':
+        sliders = SLIDERS.global_sliders
+    else:
+        sliders = SLIDERS.effect_sliders[effect_name]
 
-
-# TODO: code duplication
-async def handle_effect_sliders_request(request):
-    data = await request.post()
-    effect = EFFECTS[current_effect]
-    for slider in effect.sliders:
-        if slider.name in data:
-            value = float(data[slider.name])
+    for slider_name, slider in sliders.items():
+        if slider_name in data:
+            value = float(data[slider_name])
             print("setting slider: %s to %f" % (slider.name, value))
-            effect.set_slider(slider.name, value)
+            slider.set_value(value)
     return aiohttp.web.Response(status=302,
                                 headers={'Location': '/console'})
 
@@ -282,8 +317,8 @@ async def init(loop):
 
 
 def main():
-    global start_time
-    start_time = time.time()
+    global START_TIME
+    START_TIME = time.time()
     render_thread = threading.Thread(target=render_loop)
     render_thread.start()
     loop = asyncio.get_event_loop()

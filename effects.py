@@ -7,7 +7,7 @@ class Effect:
     TODO: docstring
     """
     def __init__(self, n_leds):
-        pass
+        self.n_leds = n_leds
 
     def render(self, x, t, input, slider_values):
         """
@@ -16,8 +16,8 @@ class Effect:
             the final color a given LED will be the sum of the effects.
 
         Args:
-            x: a 1-by-n array representing a set of points in space. The
-                location of each point can range from 0 to 1.
+            x: a 3-by-n array representing a set of points in space.
+               Each dimension can range from -1 to 1.
             t: the time, in floating point seconds after the server was started.
                Can be assumed to have millisecond accuracy.
             input: An InputState named tuple containing information about the
@@ -50,7 +50,6 @@ class Wander(Effect):
             v = (v / numpy.linalg.norm(v))
             self.directions[:, i] = v
 
-
     def render(self, x, t, inputs, slider_values):
         if self.last_t:
             t_diff = t - self.last_t
@@ -70,6 +69,7 @@ class Wander(Effect):
 
         self.last_t = t
         return self.colors.copy()
+
 
 class HsvEffect(Effect):
     def render_hsv(self, x, t, inputs, slider_values):
@@ -104,7 +104,7 @@ class WavyEffect(HsvEffect):
             numpy.sin(t * 10 * self.periods))
         brightness = ((0.8 - 0.1 * inputs.fade)
                       + (0.2 + 0.1 * inputs.fade) * brightness_modulation)
-        pos_mask = numpy.sin((x - inputs.focus_x) * 5)**8
+        pos_mask = numpy.sin((x[0, :] - inputs.focus_x) * 5)**8
 
         h = (0.5 + 0.5 * numpy.sin(inputs.focus_y * 2)) * numpy.ones((1, n))
         s = 0.8 * numpy.ones((1, n))
@@ -113,10 +113,13 @@ class WavyEffect(HsvEffect):
         return numpy.vstack([h, s, v])
 
 
-
 class VerticalWipe(Effect):
-    def render(self, x, t, inputs, slider_values):
-        n = x.shape[2]
+    def render(self, X, t, inputs, slider_values):
+        x = X[0, :]
+
+        #brightness_modulation = numpy.sin((z - 0.2 * t) * 5)
+        brightness = numpy.ones(len(x)) * 0.1 # (x + 1.) / 2.
+        return numpy.vstack([brightness, brightness, brightness])
 
 
 class March(Effect):
