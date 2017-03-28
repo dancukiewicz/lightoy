@@ -1,4 +1,6 @@
 *~
 __pycache__
 .idea/
+/tools/locate_spiral/out/
+
 

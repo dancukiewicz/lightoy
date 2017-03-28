@@ -3,8 +3,6 @@
 import aiohttp
 import aiohttp.web
 import asyncio
-import effects
-import input
 import json
 import numpy
 import os
@@ -13,6 +11,9 @@ import serial
 import threading
 import time
 
+import effects
+import input
+from params import Slider
 
 # TODO: command-line arg
 HTTP_PORT = 8080
@@ -35,30 +36,23 @@ def get_server_time():
     return time.time() - START_TIME
 
 
-# Defines  a parameter that goes into an effect
-class Slider:
-    def __init__(self, name, min_value, max_value, default_value):
-        self.min_value = min_value
-        self.max_value = max_value
-        self.name = name
-        self.default_value = default_value
-        self.value = default_value
-
-    def set_value(self, value):
-        if value < self.min_value or value > self.max_value:
-            raise Exception("Value given (%f) can't exceed bounds [%f, %f]" %
-                            (value, self.min_value, self.max_value))
-        self.value = value
-
-    def get_value(self):
-        return self.value
-
-
 class EffectInfo:
     def __init__(self, name, effect, sliders=None):
         self.name = name
         self.effect = effect
         self.sliders = sliders or []
+
+
+def register_effects(effect_list):
+    """effect_list will be mutated to hold the relevant EffectInfo instances.
+
+    effect_
+    """
+
+    pass
+
+
+r
 
 
 # effect name => (effect, list of sliders)
@@ -67,7 +61,7 @@ EFFECT_LIST = [
     EffectInfo('wavy', effects.WavyEffect(NUM_LEDS)),
     EffectInfo('wander', effects.Wander(NUM_LEDS),
                [Slider('speed', 0, 2, 0.3)]),
-    EffectInfo('march', effects.March(NUM_LEDS)),
+    EffectInfo('follow_input', effects.InputFollowingWave(NUM_LEDS)),
     EffectInfo('wipe', effects.VerticalWipe(NUM_LEDS)),
 ]
 
@@ -75,31 +69,13 @@ EFFECTS = {effect.name: effect for effect in EFFECT_LIST}
 
 CURRENT_EFFECT = 'wipe'
 
-GLOBAL_SLIDERS = [
+GLOBAL_SLIDER_LIST = [
     # total number of twists taken by the spiral
     Slider('twists',     0., 30., 17.55),
     Slider('brightness', 0.,  1.,  1.),
 ]
 
-
-class Sliders:
-    # effect name => slider name => slider
-    effect_sliders = {}
-    # slider name => slider
-    global_sliders = {}
-
-    def __init__(self, effects, global_sliders):
-        for effect_name, effect_info in effects.items():
-            self.effect_sliders[effect_name] = {
-                slider.name: slider for slider in effect_info.sliders
-            }
-        self.global_sliders = {
-            slider.name: slider for slider in global_sliders
-        }
-
-# current slider values
-
-SLIDERS = Sliders(EFFECTS, GLOBAL_SLIDERS)
+GLOBAL_SLIDERS = {slider.name: slider for slider in GLOBAL_SLIDER_LIST}
 
 INPUT_PROCESSOR = input.InputProcessor()
 
