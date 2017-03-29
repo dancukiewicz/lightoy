@@ -1,6 +1,7 @@
 import numpy
 
-from effect import Effect
+from effects.effect import Effect
+import params
 
 
 class Wander(Effect):
@@ -12,36 +13,38 @@ class Wander(Effect):
     low or high bound, the sign of that component of the vector is reversed.
     # TODO: write this more coherently
     """
-    last_t = None
+    def init_params(self):
+        return {
+            'speed': params.Scalar(0., 2., 0.3),
+            }
 
-    def __init__(self, n_leds):
-        self.n_leds = n_leds
-        self.colors = numpy.ones((3, n_leds))
-
-        self.params = {'directions': }
-
-        self.directions = numpy.zeros((3, n_leds))
-        for i in range(n_leds):
+    def init_state(self):
+        directions = numpy.zeros((3, self.n_leds))
+        for i in range(self.n_leds):
             v = numpy.random.rand(3)
             v = (v / numpy.linalg.norm(v))
-            self.directions[:, i] = v
+            directions[:, i] = v
 
-    def render(self, x, t, inputs, slider_values):
-        if self.last_t:
-            t_diff = t - self.last_t
-        else:
-            t_diff = 0
+        return {
+            'colors': numpy.zeros((3, self.n_leds)),
+            'directions': directions
+        }
 
-        self.colors += self.directions * t_diff * slider_values['speed']
-
+    @classmethod
+    def update_state(cls, x, t, t_diff, inputs, param, state):
+        n_leds = x.shape[1]
+        colors = state['colors']
+        directions = state['directions']
+        colors += (directions * t_diff * param['speed'].get_value())
         for c in range(3):
-            for led in range(self.n_leds):
-                if self.colors[c, led] < 0:
-                    self.colors[c, led] *= -1
-                    self.directions[c, led] *= -1
-                elif self.colors[c, led] > 1:
-                    self.colors[c, led] = 2 - self.colors[c, led]
-                    self.directions[c, led] *= -1
+            for led in range(n_leds):
+                if colors[c, led] < 0:
+                    colors[c, led] *= -1
+                    directions[c, led] *= -1
+                elif colors[c, led] > 1:
+                    colors[c, led] = 2 - colors[c, led]
+                    directions[c, led] *= -1
 
-        self.last_t = t
-        return self.colors.copy()
+    @classmethod
+    def render(cls, x, t, t_diff, inputs, param, state):
+        return state['colors'].copy()

@@ -1,10 +1,14 @@
 import numpy
 
+
 class Param:
     # Dict of (string => function) representing the actions that can be
     # performed for the effect. The corresponding function is called with
     # self as an argument.
     actions = {}
+
+    # each instance keeps a value object.
+    value = None
 
     def do_action(self, action_name):
         if action_name not in self.actions:
@@ -24,10 +28,9 @@ class Scalar(Param):
     current state."""
     actions = {"reset": lambda self: self.on_reset()}
 
-    def __init__(self, name, min_value, max_value, default_value):
+    def __init__(self, min_value, max_value, default_value):
         self.min_value = min_value
         self.max_value = max_value
-        self.name = name
         self.default_value = default_value
         self.value = default_value
 
@@ -41,16 +44,28 @@ class Scalar(Param):
         return super(Scalar, self).set_value(value)
 
 
-class RandomArray(Param):
+class Array(Param):
+    actions = {"reset": lambda self: self.reset()}
+
+    def __init__(self, shape, reset_fn = None):
+        self.shape = shape
+        self.reset_fn = reset_fn
+        self.reset()
+
+    def reset(self):
+        if self.reset_fn is not None:
+            self.value = self.reset_fn()
+        else:
+            self.value = numpy.zeros(self.shape)
+
+
+class RandomArray(Array):
     """The value is a random Array where each component is uniformly
     distributed."""
     actions = {"reset": lambda self: self.reset()}
 
-    def __init__(self, name, shape):
-        self.name = name
-        self.shape = shape
-        self.value = numpy.zeros(shape)
-        self.reset()
+    def __init__(self, shape):
+        def reset_fn():
+            return numpy.random.rand(*shape)
+        super(RandomArray, self).__init__(shape, reset_fn)
 
-    def reset(self):
-        self.value = numpy.random.rand(*self.shape)

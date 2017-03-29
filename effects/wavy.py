@@ -5,16 +5,16 @@ import params
 
 
 class Wavy(Effect):
-    def __init__(self, n_leds):
-        self.params = {'periods': params.RandomArray(n_leds)}
+    def init_params(self):
+        return {'periods': params.RandomArray(self.n_leds)}
 
     @classmethod
-    def render(cls, x, t, inputs, param):
-        # TODO: params
+    def render(cls, x, t, t_diff, inputs, param, state):
+        # TODO: break out more things into params
         n = x.shape[1]
         # Default: just make everything red, with a bit of a wavy effect.
-        brightness_modulation = (
-            numpy.sin(t * 10 * param['periods']))
+        periods = param['periods'].get_value()
+        brightness_modulation = numpy.sin(t * 10 * periods)
         brightness = ((0.8 - 0.1 * inputs.fade)
                       + (0.2 + 0.1 * inputs.fade) * brightness_modulation)
         pos_mask = numpy.sin((x[0, :] - inputs.focus_x) * 5)**8

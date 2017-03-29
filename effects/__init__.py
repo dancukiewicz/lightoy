@@ -1,6 +1,6 @@
-from effect import Effect
+from effects.effect import Effect
 
-from misc import *
+from effects.misc import *
 
-from wander import Wander
-from wavy import Wavy
+from effects.wander import Wander
+from effects.wavy import Wavy

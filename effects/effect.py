@@ -9,11 +9,33 @@ class Effect:
     # Dictionary of (parameter name => stateful parameter instance)
     params = {}
 
+    # Dictionary representing the effect's state. No restrictions currently.
+    state = {}
+
     def __init__(self, n_leds):
         self.n_leds = n_leds
+        self.params = self.init_params()
+        self.state = self.init_state()
+
+    def init_params(self):
+        """
+        Returns the effect's initial parameters.
+        """
+        return {}
+
+    def init_state(self):
+        """
+        Returns the effect's initial state.
+        """
+        return {}
 
     @classmethod
-    def render(cls, x, t, input, params):
+    def update_state(cls, x, t, t_diff, inputs, param, state):
+        """Use this to mutate the state dict."""
+        pass
+
+    @classmethod
+    def render(cls, x, t, t_diff, inputs, param, state):
         """
         Determines the brightness and color of an LED at a given point in space
             and time. Multiple effects can be simultaneously used; in that case,
@@ -52,3 +74,5 @@ class Effect:
             r, g, b = colorsys.hsv_to_rgb(h, s, v)
             rgb[:, i] = [r, g, b]
         return rgb
+
+
