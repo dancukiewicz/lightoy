@@ -34,6 +34,11 @@ class Effect:
         """Use this to mutate the state dict."""
         pass
 
+    def do_render(self, x, t, t_diff, inputs):
+        """Renders the lights (see doc on render()) with the effect's stored
+        parameters and state."""
+        return self.render(x, t, t_diff, inputs, self.params, self.state)
+
     @classmethod
     def render(cls, x, t, t_diff, inputs, param, state):
         """
@@ -41,7 +46,7 @@ class Effect:
             and time. Multiple effects can be simultaneously used; in that case,
             the final color a given LED will be the sum of the effects.
 
-        This method is stateless. render_with_state() should be called for an
+        This method is stateless. do_render() should be called for an
         effect instance to render with the effect's state.
 
         Args:

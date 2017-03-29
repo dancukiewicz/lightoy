@@ -26,9 +26,11 @@ OUT_HEADER = bytes("head", 'utf-8')
 # True to test out locally
 NO_SERIAL = False
 
-
 # time at which the server was started
 START_TIME = None
+# the last time the lights were rendered
+LAST_T = None
+T_DIFF_HISTORY = []
 
 
 def get_server_time():
@@ -39,8 +41,11 @@ def get_server_time():
 def get_effects():
     """Returns an {effect name => initialized effect} dict.
     """
-    all_effects = effects.Effect.__subclasses__()
-    return {effect.__name__: effect for effect in all_effects}
+    all_effect_classes = effects.Effect.__subclasses__()
+    return {
+        effect_class.__name__: effect_class(NUM_LEDS)
+        for effect_class in all_effect_classes
+        }
 
 EFFECTS = get_effects()
 
@@ -48,13 +53,10 @@ CURRENT_EFFECT = 'VerticalWipe'
 
 GLOBAL_PARAMS = {
     # total number of twists taken by the spiral
-    'twists': params.
-
-    Slider('twists',     0., 30., 17.55),
-    Slider('brightness', 0.,  1.,  1.),
+    'twists': params.Scalar(0., 30., 17.55),
+    # scales the brightness of the LEDs
+    'brightness': params.Scalar(0., 1., 1.),
 }
-
-GLOBAL_SLIDERS = {slider.name: slider for slider in GLOBAL_SLIDER_LIST}
 
 INPUT_PROCESSOR = input.InputProcessor()
 
@@ -69,7 +71,7 @@ def get_locations():
     # 1 for counterclockwise, -1 for clockwise
     direction = -1
 
-    twists = SLIDERS.global_sliders['twists'].get_value()
+    twists = GLOBAL_PARAMS['twists'].get_value()
     # angle in x-y plane swept between two consequent LEDs
     theta_per_led = 2. * numpy.pi * twists / NUM_LEDS
     thetas = numpy.array(range(NUM_LEDS)) * theta_per_led
@@ -87,14 +89,22 @@ def render():
     """
     Returns a 3-by-n array representing the final color of each of the n LEDs.
     """
+    global LAST_T, T_DIFF_HISTORY
     t = get_server_time()
+    if LAST_T is not None:
+        t_diff = t - LAST_T
+    else:
+        t_diff = t
+    T_DIFF_HISTORY.append(t_diff)
+    T_DIFF_HISTORY = T_DIFF_HISTORY[-30:]
+
+    LAST_T = t
     inputs = INPUT_PROCESSOR.get_state(t)
     x = get_locations()
 
     effect = EFFECTS[CURRENT_EFFECT]
-    # TODO: naming becomes awkward here
-    output = effect.effect.render(x, t, inputs,
-                                  SLIDERS.effect_sliders[effect.name])
+
+    output = effect.do_render(x, t, t_diff, inputs)
     numpy.clip(output, 0., 1., out=output)
     return output
 
@@ -201,36 +211,46 @@ async def handle_console_request(request):
 
     effect = EFFECTS[CURRENT_EFFECT]
 
-    def get_slider_data(slider):
+    def format_param_data(param, param_name):
         return {
-            'name': slider.name,
-            'min_value': slider.min_value,
-            'max_value': slider.max_value,
-            'default_value': slider.default_value,
-            'cur_value': slider.get_value(),
+            'name': param_name,
+            'min_value': param.min_value,
+            'max_value': param.max_value,
+            'default_value': param.default_value,
+            'cur_value': param.get_value(),
         }
 
-    effect_slider_data = [get_slider_data(slider)
-        for slider_name, slider in SLIDERS.effect_sliders[effect.name].items()]
-    global_slider_data = [get_slider_data(slider)
-        for slider_name, slider in SLIDERS.global_sliders.items()]
+    def get_param_data(param_dict):
+        """param_dict: name => param object dict
 
-    other_effects = []
-    for effect_name in EFFECTS:
-        if effect_name != CURRENT_EFFECT:
-            other_effects.append({'name': effect_name})
+        Returns: A list of corresponding formatting dicts
+        """
+        return [
+            format_param_data(param, param_name)
+            for param_name, param in param_dict.items()
+            # for now we only render scalar params
+            if issubclass(param.__class__, params.Scalar)
+            ]
+
+    effect_param_data = get_param_data(effect.params)
+    global_param_data = get_param_data(GLOBAL_PARAMS)
+
+    other_effects = [
+        {'name': effect_name}
+        for effect_name in EFFECTS.keys()
+        if effect_name != CURRENT_EFFECT]
 
     text = pystache.render(template, {
         'current_effect': cur_effect,
         'other_effects': other_effects,
-        'effect_sliders': effect_slider_data,
-        'global_sliders': global_slider_data
+        'effect_params': effect_param_data,
+        'global_params': global_param_data
         })
     return aiohttp.web.Response(text=text,
                                 headers={'content-type': 'text/html'})
 
 
-async def handle_effect_request(request):
+async def handle_change_effect_request(request):
     global CURRENT_EFFECT
     print(request)
     data = await request.post()
@@ -239,24 +259,44 @@ async def handle_effect_request(request):
                                 headers={'Location': '/console'})
 
 
-async def handle_sliders_request(request):
+async def handle_update_params_request(request):
     data = await request.post()
     effect_name = data['effect']
+    # TODO: magic string, but breaking out into a constant wouldn't make sense.
     if effect_name == 'global':
-        sliders = SLIDERS.global_sliders
+        param_dict = GLOBAL_PARAMS
     else:
-        sliders = SLIDERS.effect_sliders[effect_name]
+        param_dict = EFFECTS[effect_name].params
 
-    for slider_name, slider in sliders.items():
-        if slider_name in data:
-            value = float(data[slider_name])
-            print("setting slider: %s to %f" % (slider.name, value))
-            slider.set_value(value)
+    for param_name, param in param_dict.items():
+        if param_name in data:
+            assert issubclass(param.__class__, params.Scalar), \
+                "non-scalar params unsupported"
+            value = float(data[param_name])
+            print("setting param: %s to %f" % (param_name, value))
+            param.set_value(value)
     return aiohttp.web.Response(status=302,
                                 headers={'Location': '/console'})
 
 
-async def handle_websocket_request(request):
+async def handle_input_websocket_request(request):
+    ws = aiohttp.web.WebSocketResponse()
+    await ws.prepare(request)
+
+    async for msg in ws:
+        if msg.type == aiohttp.WSMsgType.TEXT:
+            if msg.data == 'close':
+                await ws.close()
+            else:
+                response = await handle_message(json.loads(msg.data))
+                if response is not None:
+                    ws.send_json(response)
+        elif msg.type == aiohttp.WSMsgType.ERROR:
+            print('ws connection closed with exception %s' %
+                  ws.exception())
+
+
+async def handle_console_websocket_request(request):
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
 
@@ -277,9 +317,10 @@ async def init(loop):
     app = aiohttp.web.Application(loop=loop)
     app.router.add_get('/', handle_touchpad_request)
     app.router.add_get('/console', handle_console_request)
-    app.router.add_post('/console/effect', handle_effect_request)
-    app.router.add_post('/console/sliders', handle_sliders_request)
-    app.router.add_get('/ws', handle_websocket_request)
+    app.router.add_post('/console/effect', handle_change_effect_request)
+    app.router.add_post('/console/params', handle_update_params_request)
+    app.router.add_get('/input_ws', handle_input_websocket_request)
+    app.router.add_get('/console_ws', handle_console_websocket_request)
     app.router.add_static('/static', 'static', name='static')
     return app
 

@@ -47,7 +47,7 @@ class Scalar(Param):
 class Array(Param):
     actions = {"reset": lambda self: self.reset()}
 
-    def __init__(self, shape, reset_fn = None):
+    def __init__(self, shape, reset_fn=None):
         self.shape = shape
         self.reset_fn = reset_fn
         self.reset()
@@ -65,7 +65,9 @@ class RandomArray(Array):
     actions = {"reset": lambda self: self.reset()}
 
     def __init__(self, shape):
+        if type(shape) is not tuple:
+            shape = (shape,)
+
         def reset_fn():
             return numpy.random.rand(*shape)
         super(RandomArray, self).__init__(shape, reset_fn)
-
