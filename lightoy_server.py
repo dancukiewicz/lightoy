@@ -13,7 +13,7 @@ import time
 
 import effects
 import input
-from params import Slider
+import params
 
 # TODO: command-line arg
 HTTP_PORT = 8080
@@ -36,44 +36,23 @@ def get_server_time():
     return time.time() - START_TIME
 
 
-class EffectInfo:
-    def __init__(self, name, effect, sliders=None):
-        self.name = name
-        self.effect = effect
-        self.sliders = sliders or []
-
-
-def register_effects(effect_list):
-    """effect_list will be mutated to hold the relevant EffectInfo instances.
-
-    effect_
+def get_effects():
+    """Returns an {effect name => initialized effect} dict.
     """
+    all_effects = effects.Effect.__subclasses__()
+    return {effect.__name__: effect for effect in all_effects}
 
-    pass
+EFFECTS = get_effects()
 
+CURRENT_EFFECT = 'VerticalWipe'
 
-r
-
-
-# effect name => (effect, list of sliders)
-# TODO: effect name => value
-EFFECT_LIST = [
-    EffectInfo('wavy', effects.WavyEffect(NUM_LEDS)),
-    EffectInfo('wander', effects.Wander(NUM_LEDS),
-               [Slider('speed', 0, 2, 0.3)]),
-    EffectInfo('follow_input', effects.InputFollowingWave(NUM_LEDS)),
-    EffectInfo('wipe', effects.VerticalWipe(NUM_LEDS)),
-]
-
-EFFECTS = {effect.name: effect for effect in EFFECT_LIST}
-
-CURRENT_EFFECT = 'wipe'
-
-GLOBAL_SLIDER_LIST = [
+GLOBAL_PARAMS = {
     # total number of twists taken by the spiral
+    'twists': params.
+
     Slider('twists',     0., 30., 17.55),
     Slider('brightness', 0.,  1.,  1.),
-]
+}
 
 GLOBAL_SLIDERS = {slider.name: slider for slider in GLOBAL_SLIDER_LIST}
 
