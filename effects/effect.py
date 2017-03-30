@@ -29,15 +29,19 @@ class Effect:
         """
         return {}
 
+
+    def do_render(self, x, t, t_diff, inputs):
+        """Updates the effect's state and renders the lights
+        (see doc on render()) with the effect's stored parameters and state."""
+        self.update_state(x, t, t_diff, inputs, self.params, self.state)
+        return self.render(x, t, t_diff, inputs, self.params, self.state)
+
+
     @classmethod
     def update_state(cls, x, t, t_diff, inputs, param, state):
         """Use this to mutate the state dict."""
         pass
 
-    def do_render(self, x, t, t_diff, inputs):
-        """Renders the lights (see doc on render()) with the effect's stored
-        parameters and state."""
-        return self.render(x, t, t_diff, inputs, self.params, self.state)
 
     @classmethod
     def render(cls, x, t, t_diff, inputs, param, state):

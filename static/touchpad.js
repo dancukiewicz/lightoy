@@ -1,19 +1,21 @@
 function createWebSocket() {
     var loc = window.location;
-    var ws = new WebSocket('ws://' + loc.host + '/ws');
+    document.body.style.backgroundColor = "#e66";
+    var ws = new WebSocket('ws://' + loc.host + '/touch_ws');
     ws.onopen = function() {
-	console.log("connection started");
+        console.log("connection started");
+        document.body.style.backgroundColor = "#aaa";
     }
     ws.onclose = function(event) {
-	if (event.wasClean) {
-	    console.log("connection ended (clean)");
-	} else {
-	    console.warn("connection ended (unclean)");
-	}
+        if (event.wasClean) {
+            console.log("connection ended (clean)");
+        } else {
+            console.warn("connection ended (unclean)");
+        }
     }
     ws.onmessage = function(event) {
-	var msg = JSON.parse(event.data);
-	refresh(msg.pos);
+    var msg = JSON.parse(event.data);
+        refresh(msg.pos);
     }
     return ws;
 }
