@@ -48,7 +48,8 @@ def find_effects():
 shared.effects = find_effects()
 
 
-shared.cur_effect_name = "VerticalWipe"
+shared.cur_effect_name = "Wavy"
+
 
 def get_current_effect():
     return shared.cur_effect_name
@@ -65,7 +66,7 @@ shared.global_params = {
     # total number of twists taken by the spiral
     'twists': params.Scalar(0., 30., 17.55),
     # scales the brightness of the LEDs
-    'brightness': params.Scalar(0., 1., 0.3),
+    'brightness': params.Scalar(0., 1., 1.),
 }
 
 shared.input_processor = input.InputProcessor()
