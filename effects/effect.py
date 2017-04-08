@@ -1,7 +1,3 @@
-import colorsys
-import numpy
-
-
 class Effect:
     """
     TODO: docstring
@@ -29,19 +25,16 @@ class Effect:
         """
         return {}
 
-
     def do_render(self, x, t, t_diff, inputs):
         """Updates the effect's state and renders the lights
         (see doc on render()) with the effect's stored parameters and state."""
         self.update_state(x, t, t_diff, inputs, self.params, self.state)
         return self.render(x, t, t_diff, inputs, self.params, self.state)
 
-
     @classmethod
     def update_state(cls, x, t, t_diff, inputs, param, state):
         """Use this to mutate the state dict."""
         pass
-
 
     @classmethod
     def render(cls, x, t, t_diff, inputs, param, state):
@@ -67,21 +60,3 @@ class Effect:
             from 0 to 1.
         """
         raise "Not implemented"
-
-    @classmethod
-    def hsv_to_rgb(cls, hsv):
-        """
-        Args:
-            hsv: A 3-by-n array representing the HSV colors of each light.
-
-        Returns: A 3-by-n array representing the corresponding RGB colors.
-        """
-        n = hsv.shape[1]
-        rgb = numpy.zeros((3, n))
-        for i in range(n):
-            h, s, v = hsv[:, i]
-            r, g, b = colorsys.hsv_to_rgb(h, s, v)
-            rgb[:, i] = [r, g, b]
-        return rgb
-
-

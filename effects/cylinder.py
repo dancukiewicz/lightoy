@@ -1,5 +1,6 @@
 import numpy
 
+import color
 from effects.effect import Effect
 import geometry
 import params
@@ -40,4 +41,4 @@ class Cylinder(Effect):
                                      + t_shift * t * (speed - 0.1))
                            + numpy.sin((h_period * h) + h_shift * t * speed))
         hsv = numpy.vstack([hue, sat, val])
-        return cls.hsv_to_rgb(hsv)
+        return color.hsv_to_rgb(hsv)

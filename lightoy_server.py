@@ -5,11 +5,11 @@ import aiohttp.web
 import asyncio
 import numpy
 import os
-import pystache
 import serial
 import threading
 import time
 
+import color
 import effects
 import handlers.console
 import handlers.input
@@ -48,7 +48,7 @@ def find_effects():
 shared.effects = find_effects()
 
 
-shared.cur_effect_name = "Wavy"
+shared.cur_effect_name = "Cylinder"
 
 
 def get_current_effect():
@@ -65,8 +65,11 @@ def set_current_effect(effect_name):
 shared.global_params = {
     # total number of twists taken by the spiral
     'twists': params.Scalar(0., 30., 17.55),
+    # adjusts the gamma curve: adjusted_brightness = orig_brightness ** gamma
+    'gamma': params.Scalar(0., 100., 3.),
     # scales the brightness of the LEDs
-    'brightness': params.Scalar(0., 1., 1.),
+    'brightness': params.Scalar(0., 1., 0.3),
+
 }
 
 shared.input_processor = input.InputProcessor()
@@ -116,6 +119,8 @@ def render():
 
     output = effect.do_render(x, t, t_diff, inputs)
     numpy.clip(output, 0., 1., out=output)
+    output = color.gamma_correct(output,
+                                 shared.global_params['gamma'].get_value())
     output *= shared.global_params['brightness'].get_value()
     return output
 

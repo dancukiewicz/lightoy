@@ -1,5 +1,6 @@
 import numpy
 
+import color
 from effects.effect import Effect
 import params
 
@@ -29,4 +30,4 @@ class Wavy(Effect):
         v = ((0.25 + 0.75 * inputs.fade) *
              numpy.multiply(brightness, pos_mask))
         hsv = numpy.vstack([h, s, v])
-        return cls.hsv_to_rgb(hsv)
+        return color.hsv_to_rgb(hsv)
