@@ -6,8 +6,9 @@ import shared
 
 import lightoy_server
 
+
 # Each handler should return its response.
-async def handle_message(msg):
+async def handle_websocket_message(msg):
     handlers = {
         'touchstart': handle_touch_start,
         'touchmove': handle_touch_move,
@@ -70,7 +71,7 @@ async def handle_websocket_request(request):
             if msg.data == 'close':
                 await ws.close()
             else:
-                response = await handle_message(json.loads(msg.data))
+                response = await handle_websocket_message(json.loads(msg.data))
                 if response is not None:
                     ws.send_json(response)
         elif msg.type == aiohttp.WSMsgType.ERROR:

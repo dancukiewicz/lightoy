@@ -1,4 +1,5 @@
 import aiohttp
+import json
 import pystache
 
 import lightoy_server
@@ -77,3 +78,51 @@ async def handle_update_params_request(request):
             param.set_value(value)
     return aiohttp.web.Response(status=302,
                                 headers={'Location': '/console'})
+
+
+# Each handler should return its response.
+# TODO: code duplication with the input.py ws message handler
+async def handle_websocket_message(msg):
+    handlers = {
+        'sliderUpdate': handle_slider_update,
+    }
+    event = msg['ev']
+    if event in handlers:
+        return await handlers[event](msg)
+    else:
+        # TODO: logging
+        print("Unrecognized event:", event, "in message:", msg)
+        return None
+
+
+async def handle_slider_update(msg):
+    # TODO: this and the static UI should update the parameters using the
+    # same pathway
+    name = msg['name']
+    value = msg['value']
+
+    cur_effect_name = lightoy_server.get_current_effect()
+    current_effect = shared.effects[cur_effect_name]
+
+    if name in current_effect.params:
+        current_effect.params[name].set_value(value)
+    else:
+        # TODO: logging
+        print("Unrecognized param:", name)
+
+
+async def handle_websocket_request(request):
+    ws = aiohttp.web.WebSocketResponse()
+    await ws.prepare(request)
+
+    async for msg in ws:
+        if msg.type == aiohttp.WSMsgType.TEXT:
+            if msg.data == 'close':
+                await ws.close()
+            else:
+                response = await handle_websocket_message(json.loads(msg.data))
+                if response is not None:
+                    ws.send_json(response)
+        elif msg.type == aiohttp.WSMsgType.ERROR:
+            print('ws connection closed with exception %s' %
+                  ws.exception())

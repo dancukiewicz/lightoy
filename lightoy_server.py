@@ -178,6 +178,7 @@ async def init(loop):
                         handlers.console.handle_change_effect_request)
     app.router.add_post('/console/params',
                         handlers.console.handle_update_params_request)
+    app.router.add_get('/console_ws', handlers.console.handle_websocket_request)
     app.router.add_get('/touch_ws', handlers.input.handle_websocket_request)
     app.router.add_static('/static', 'static', name='static')
     return app

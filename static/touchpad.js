@@ -1,27 +1,26 @@
 function createWebSocket() {
-    var loc = window.location;
-    document.body.style.backgroundColor = "#e66";
-    var ws = new WebSocket('ws://' + loc.host + '/touch_ws');
-    ws.onopen = function() {
-        console.log("connection started");
-        document.body.style.backgroundColor = "#aaa";
+  var loc = window.location;
+  document.body.style.backgroundColor = "#e66";
+  var ws = new WebSocket('ws://' + loc.host + '/touch_ws');
+  ws.onopen = function() {
+    console.log("connection started");
+    document.body.style.backgroundColor = "#aaa";
+  }
+  ws.onclose = function(event) {
+    if (event.wasClean) {
+      console.log("connection ended (clean)");
+    } else {
+      console.warn("connection ended (unclean)");
     }
-    ws.onclose = function(event) {
-        if (event.wasClean) {
-            console.log("connection ended (clean)");
-        } else {
-            console.warn("connection ended (unclean)");
-        }
-    }
-    ws.onmessage = function(event) {
+  }
+  ws.onmessage = function(event) {
     var msg = JSON.parse(event.data);
-        refresh(msg.pos);
-    }
-    return ws;
+    refresh(msg.pos);
+  }
+  return ws;
 }
 
 var ws = createWebSocket();
-
 
 function refresh(pos) {
     var crossClassName = "cross";
