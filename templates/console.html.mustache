@@ -34,6 +34,7 @@
     <form action="/console/params" method="post">
       {{#effect_params}}
         <input type="text" name="{{name}}" value="{{cur_value}}" />&nbsp;&nbsp;{{name}}<br>
+        <!-- TODO: code duplication -->
         <div class="slider"
              min="{{min_value}}" max="{{max_value}}" value="{{cur_value}}"
              name="{{name}}">
@@ -47,6 +48,12 @@
     <form action="/console/params" method="post">
       {{#global_params}}
         <input type="text" name="{{name}}" value="{{cur_value}}" />&nbsp;&nbsp;{{name}}<br>
+        <!-- TODO: code duplication -->
+        <div class="slider"
+             min="{{min_value}}" max="{{max_value}}" value="{{cur_value}}"
+             name="{{name}}" global="global">
+          <div class="slider-tab"></div>
+        </div>
       {{/global_params}}
       <input type="hidden" name="effect" value="global" />
       <button type="submit">Set</button>

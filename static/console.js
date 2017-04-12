@@ -28,12 +28,17 @@ function updateConsole(msg) {
 }
 
 function activateSlider(el) {
+  var name = el.getAttribute("name");
+  var isGlobal = (el.getAttribute("global") == "global");
   var width = el.offsetWidth;
   var tabEl = el.getElementsByClassName('slider-tab')[0];
   var tabWidth = tabEl.offsetWidth;
-  var name = el.getAttribute("name");
   var min = parseFloat(el.getAttribute("min"));
   var max = parseFloat(el.getAttribute("max"));
+  // TODO: hack
+  if (!isGlobal) {
+    max = max / 10;
+  }
   var range = max - min;
   var defaultValue = parseFloat(el.getAttribute("value"));
   var dragging = false;
@@ -69,7 +74,8 @@ function activateSlider(el) {
     ws.send(JSON.stringify({
       ev: "sliderUpdate",
       name: name,
-      value: value
+      value: value,
+      global: isGlobal
     }));
   }
 

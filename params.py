@@ -39,8 +39,11 @@ class Scalar(Param):
 
     def set_value(self, value):
         if value < self.min_value or value > self.max_value:
-            raise Exception("Value given (%f) can't exceed bounds [%f, %f]" %
+            # TODO: logging
+            print("Value given (%f) can't exceed bounds [%f, %f]" %
                             (value, self.min_value, self.max_value))
+            value = numpy.clip(value, self.min_value, self.max_value)
+
         return super(Scalar, self).set_value(value)
 
 

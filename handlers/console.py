@@ -100,15 +100,18 @@ async def handle_slider_update(msg):
     # same pathway
     name = msg['name']
     value = msg['value']
-
     cur_effect_name = lightoy_server.get_current_effect()
-    current_effect = shared.effects[cur_effect_name]
+    if msg['global']:
+        param_dict = shared.global_params
+    else:
+        current_effect = shared.effects[cur_effect_name]
+        param_dict = current_effect.params
 
-    if name in current_effect.params:
-        current_effect.params[name].set_value(value)
+    if name in param_dict:
+        param_dict[name].set_value(value)
     else:
         # TODO: logging
-        print("Unrecognized param:", name)
+        print("Unrecognized param:", name, "recognized:", param_dict.keys())
 
 
 async def handle_websocket_request(request):
