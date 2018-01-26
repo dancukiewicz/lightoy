@@ -23,6 +23,7 @@ HTTP_PORT = 8080
 SERIAL_DEVICE = '/dev/ttyACM0'
 SERIAL_BAUD = 115200
 REFRESH_RATE = 200
+# TODO: command-line arg
 NUM_LEDS = 300
 OUT_HEADER = bytes("head", 'utf-8')
 # True to test out locally
@@ -36,18 +37,7 @@ def get_server_time():
         return 0.
 
 
-def find_effects():
-    """Returns an {effect name => initialized effect} dict.
-    """
-    all_effect_classes = effects.Effect.__subclasses__()
-    return {
-        effect_class.__name__: effect_class(NUM_LEDS)
-        for effect_class in all_effect_classes
-        }
-
-shared.effects = find_effects()
-
-
+shared.effects = effects.create_effects(NUM_LEDS)
 shared.cur_effect_name = "Cylinder"
 
 
@@ -135,7 +125,7 @@ def get_out_data():
     for led in range(NUM_LEDS):
         # The LED at the end is at x=0, which is simply an artifact of how I
         # laid them out now.
-        # TODO: make the color order configurable
+        # TODO: huh? what's that mean?
         r, g, b = output[:, NUM_LEDS - led - 1]
         out_data.append(int(g*255))
         out_data.append(int(r*255))
@@ -157,7 +147,7 @@ def render_loop():
             ser.write(out_data)
             ser.flush()
         # Sleep to the next 1/REFRESH_RATE interval.
-        refresh_interval = 1 / REFRESH_RATE
+        refresh_interval = 1. / REFRESH_RATE
         sleep_time = refresh_interval - (time.time() % refresh_interval)
         if sleep_time == 0:
             sleep_time = refresh_interval
@@ -170,8 +160,8 @@ def get_template(template_name):
     return open(template_filename, 'r').read()
 
 
-async def init(loop):
-    app = aiohttp.web.Application(loop=loop)
+async def init_app(event_loop):
+    app = aiohttp.web.Application(loop=event_loop)
     app.router.add_get('/', handlers.input.handle_touchpad_request)
     app.router.add_get('/console', handlers.console.handle_console_request)
     app.router.add_post('/console/effect',
@@ -188,9 +178,9 @@ def main():
     shared.start_time = time.time()
     render_thread = threading.Thread(target=render_loop)
     render_thread.start()
-    loop = asyncio.get_event_loop()
-    app = loop.run_until_complete(init(loop))
-    aiohttp.web.run_app(app)
+    event_loop = asyncio.get_event_loop()
+    web_app = event_loop.run_until_complete(init_app(event_loop))
+    aiohttp.web.run_app(web_app)
 
 
 if __name__ == "__main__":
