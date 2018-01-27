@@ -10,12 +10,11 @@ import threading
 import time
 
 import color
-import effects
 import handlers.console
 import handlers.input
-import input
-import params
+from output import SerialOutput
 from session import Session
+
 
 # TODO: command-line arg
 HTTP_PORT = 8080
@@ -25,7 +24,7 @@ SERIAL_BAUD = 115200
 REFRESH_RATE = 200
 # TODO: command-line arg
 NUM_LEDS = 300
-OUT_HEADER = bytes("head", 'utf-8')
+
 # True to test out locally
 NO_SERIAL = False
 
@@ -78,17 +77,11 @@ def get_out_data(session):
     Returns a byte buffer representing the data that will be sent over serial
         for this frame.
     """
-    output = render(session)
-    out_data = bytearray(OUT_HEADER)
-    for led in range(NUM_LEDS):
-        # The LED at the end is at x=0, which is simply an artifact of how I
-        # laid them out now.
-        # TODO: huh? what's that mean?
-        r, g, b = output[:, NUM_LEDS - led - 1]
-        out_data.append(int(g*255))
-        out_data.append(int(r*255))
-        out_data.append(int(b*255))
-    return out_data
+    # TODO: needs work
+    out = SerialOutput(SERIAL_DEVICE, NUM_LEDS)
+    rendered = render(session)
+    return out._get_out_data(session)
+
 
 
 def render_loop(session):

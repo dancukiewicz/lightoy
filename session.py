@@ -41,7 +41,7 @@ class Session(object):
         else:
             t_diff = 0.
         self.last_t = t
-        return t
+        return t_diff
 
     def set_current_effect_name(self, effect_name):
         assert effect_name in self.effects.keys(), \
