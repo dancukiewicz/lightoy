@@ -1,6 +1,6 @@
 import numpy
 
-class Param:
+class Parameter:
     # Dict of (string => function) representing the actions that can be
     # performed for the effect. The corresponding function is called with
     # self as an argument.
@@ -22,7 +22,7 @@ class Param:
         return self.value
 
 
-class Scalar(Param):
+class Scalar(Parameter):
     """Defines a mutable scalar parameter that goes into an effect, along with its
     current state."""
     actions = {"reset": lambda self: self.on_reset()}
@@ -46,7 +46,7 @@ class Scalar(Param):
         return super(Scalar, self).set_value(value)
 
 
-class Array(Param):
+class Array(Parameter):
     actions = {"reset": lambda self: self.reset()}
 
     def __init__(self, shape, reset_fn=None):

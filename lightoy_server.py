@@ -15,7 +15,7 @@ import handlers.console
 import handlers.input
 import input
 import params
-import shared
+from session import Session
 
 # TODO: command-line arg
 HTTP_PORT = 8080
@@ -30,43 +30,8 @@ OUT_HEADER = bytes("head", 'utf-8')
 NO_SERIAL = False
 
 
-def get_server_time():
-    if shared.start_time is not None:
-        return time.time() - shared.start_time
-    else:
-        return 0.
-
-
-shared.effects = effects.create_effects(NUM_LEDS)
-shared.cur_effect_name = "Cylinder"
-
-
-def get_current_effect():
-    return shared.cur_effect_name
-
-
-def set_current_effect(effect_name):
-    assert effect_name in shared.effects.keys(), \
-        "unknown effect: %s" % effect_name
-    print("setting effect to: %s" % effect_name)
-    shared.cur_effect_name = effect_name
-
-
-shared.global_params = {
-    # total number of twists taken by the spiral
-    'twists': params.Scalar(0., 30., 17.55),
-    # adjusts the gamma curve: adjusted_brightness = orig_brightness ** gamma
-    'gamma': params.Scalar(0., 100., 3.),
-    # scales the brightness of the LEDs
-    'brightness': params.Scalar(0., 1., 0.3),
-
-}
-
-shared.input_processor = input.InputProcessor()
-
-
 # TODO: split out into module
-def get_locations():
+def get_locations(session):
     """Returns a 3-by-NUM_LEDS array representing the x,y,z positions of the
     LEDs. Each dimension ranges from 0 to 1.
     X: right, y: out from viewer, z: up
@@ -75,7 +40,7 @@ def get_locations():
     # 1 for counterclockwise, -1 for clockwise
     direction = -1
 
-    twists = shared.global_params['twists'].get_value()
+    twists = session.global_params['twists'].get_value()
     # angle in x-y plane swept between two consequent LEDs
     theta_per_led = 2. * numpy.pi * twists / NUM_LEDS
     thetas = numpy.array(range(NUM_LEDS)) * theta_per_led
@@ -89,38 +54,31 @@ def get_locations():
     return locations
 
 
-def render():
+def render(session):
     """
     Returns a 3-by-n array representing the final color of each of the n LEDs.
     """
-    t = get_server_time()
-    if shared.last_t is not None:
-        t_diff = t - shared.last_t
-    else:
-        t_diff = t
-    shared.render_time_history.append(t_diff)
-    shared.render_time_history = shared.render_time_history[-30:]
-
-    shared.last_t = t
-    inputs = shared.input_processor.get_state(t)
+    t = session.get_time()
+    t_diff = session.get_time_delta(t)
+    inputs = session.input_processor.get_state(t)
     x = get_locations()
 
-    effect = shared.effects[get_current_effect()]
+    effect = session.get_current_effect()
 
     output = effect.do_render(x, t, t_diff, inputs)
     numpy.clip(output, 0., 1., out=output)
     output = color.gamma_correct(output,
-                                 shared.global_params['gamma'].get_value())
-    output *= shared.global_params['brightness'].get_value()
+                                 session.global_params['gamma'].get_value())
+    output *= session.global_params['brightness'].get_value()
     return output
 
 
-def get_out_data():
+def get_out_data(session):
     """
     Returns a byte buffer representing the data that will be sent over serial
         for this frame.
     """
-    output = render()
+    output = render(session)
     out_data = bytearray(OUT_HEADER)
     for led in range(NUM_LEDS):
         # The LED at the end is at x=0, which is simply an artifact of how I
@@ -133,7 +91,7 @@ def get_out_data():
     return out_data
 
 
-def render_loop():
+def render_loop(session):
     if NO_SERIAL:
         ser = None
     else:
@@ -142,7 +100,7 @@ def render_loop():
                             rtscts=False, dsrdtr=False, inter_byte_timeout=None)
     while True:
         # Render the frame and send it out to the Teensy.
-        out_data = get_out_data()
+        out_data = get_out_data(session)
         if not NO_SERIAL:
             ser.write(out_data)
             ser.flush()
@@ -160,8 +118,9 @@ def get_template(template_name):
     return open(template_filename, 'r').read()
 
 
-async def init_app(event_loop):
+async def init_app(event_loop, session):
     app = aiohttp.web.Application(loop=event_loop)
+    app['session'] = session
     app.router.add_get('/', handlers.input.handle_touchpad_request)
     app.router.add_get('/console', handlers.console.handle_console_request)
     app.router.add_post('/console/effect',
@@ -175,11 +134,11 @@ async def init_app(event_loop):
 
 
 def main():
-    shared.start_time = time.time()
-    render_thread = threading.Thread(target=render_loop)
+    session = Session(NUM_LEDS)
+    render_thread = threading.Thread(target=render_loop, args=(session,))
     render_thread.start()
     event_loop = asyncio.get_event_loop()
-    web_app = event_loop.run_until_complete(init_app(event_loop))
+    web_app = event_loop.run_until_complete(init_app(event_loop, session))
     aiohttp.web.run_app(web_app)
 
 

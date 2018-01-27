@@ -1,14 +1,19 @@
 import aiohttp
 import json
-import os
 import pystache
-import shared
 
 import lightoy_server
 
 
+async def handle_touchpad_request(request):
+    template = lightoy_server.get_template('touchpad')
+    text = pystache.render(template, {})
+    return aiohttp.web.Response(text=text,
+                                headers={'content-type': 'text/html'})
+
+
 # Each handler should return its response.
-async def handle_websocket_message(msg):
+async def handle_websocket_message(msg, session):
     handlers = {
         'touchstart': handle_touch_start,
         'touchmove': handle_touch_move,
@@ -17,7 +22,7 @@ async def handle_websocket_message(msg):
     }
     event = msg['ev']
     if event in handlers:
-        return await handlers[event](msg)
+        return await handlers[event](msg, session)
     else:
         # TODO: logging
         print("Unrecognized event:", event, "in message:", msg)
@@ -28,41 +33,34 @@ def pos(touches):
     return {'pos': touches}
 
 
-async def handle_touch_start(msg):
+async def handle_touch_start(msg, session):
     touches = msg['touches']
-    shared.input_processor.on_touch_start(
-        touches, lightoy_server.get_server_time())
+    session.input_processor.on_touch_start(touches, session.get_time())
     print("touch start:", msg)
     return pos(touches)
 
 
-async def handle_touch_move(msg):
+async def handle_touch_move(msg, session):
     touches = msg['touches']
-    shared.input_processor.on_touch_move(
-        touches, lightoy_server.get_server_time())
+    session.input_processor.on_touch_move(
+        touches, session.get_time())
     return pos(touches)
 
 
-async def handle_touch_end(msg):
-    shared.input_processor.on_touch_end(lightoy_server.get_server_time())
+async def handle_touch_end(msg, session):
+    session.input_processor.on_touch_end(lightoy_server.get_server_time())
     print("touch end:", msg)
     return pos([])
 
 
-async def handle_touch_cancel(msg):
-    shared.input_processor.on_touch_end(lightoy_server.get_server_time())
+async def handle_touch_cancel(msg, session):
+    session.input_processor.on_touch_end(lightoy_server.get_server_time())
     print("touch end:", msg)
     return pos([])
-
-
-async def handle_touchpad_request(request):
-    template = lightoy_server.get_template('touchpad')
-    text = pystache.render(template, {})
-    return aiohttp.web.Response(text=text,
-                                headers={'content-type': 'text/html'})
 
 
 async def handle_websocket_request(request):
+    session = request.app['session']
     ws = aiohttp.web.WebSocketResponse()
     await ws.prepare(request)
 
@@ -71,7 +69,8 @@ async def handle_websocket_request(request):
             if msg.data == 'close':
                 await ws.close()
             else:
-                response = await handle_websocket_message(json.loads(msg.data))
+                response = await handle_websocket_message(
+                    json.loads(msg.data), session)
                 if response is not None:
                     ws.send_json(response)
         elif msg.type == aiohttp.WSMsgType.ERROR:
