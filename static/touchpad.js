@@ -41,9 +41,6 @@ function refresh(pos) {
     });
 }
 
-
-/* TODO: clearly, these handlers need to be refactored */
-
 // TODO: comment
 function convertTouch(touch) {
     return {

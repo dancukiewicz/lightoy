@@ -7,8 +7,7 @@ This includes:
     * Effect instances, which may have per-effect state.
     * Which effect is current.
     * The current input state.
-    * TODO: how about time? Currently we hold start_time, but we may want to
-      revamp that.
+    * Timing-related information.
 """
 import effects
 import input
@@ -61,9 +60,8 @@ class Session(object):
     def _create_global_params(cls):
         # TODO: have consistent story of what global parameters are for.
         return {
-            # total number of twists taken by the spiral
-            # TODO: looks like we should have per-model params, or something
-            # like that.
+            # TODO: looks like we should have per-model params.
+            # Total number of twists taken by the spiral.
             'twists': params.Scalar(0., 30., 17.55),
             # adjusts the gamma curve:
             # adjusted_brightness = original_brightness ** gamma

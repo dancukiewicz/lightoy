@@ -1,10 +1,17 @@
+"""Program to draw virtual LEDs in order to visualize the array without
+the hardware.
+
+TODO: finish this.
+"""
+
+
 import math
 import numpy
 from OpenGL.GLU import *
 from OpenGL.GL import *
 import pygame
 import redis
-import sys
+
 
 def lamp_coordinates():
     strips = 9
@@ -50,8 +57,6 @@ def render(coordinates):
 def main():
     client = redis.Redis("localhost", "6379")
     init_display((1280, 960))
-
-
     coordinates = lamp_coordinates()
     while True:
         for event in pygame.event.get():
@@ -60,6 +65,7 @@ def main():
                 quit()
         render(coordinates)
         pygame.time.wait(10)  # TODO: remove once pub-subbing
+
 
 if __name__ == "__main__":
     main()

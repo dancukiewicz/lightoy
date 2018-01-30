@@ -87,7 +87,7 @@ class InputProcessor:
                 diffs = self.touch_history[:, 0] - self.touch_history[:, last_i]
                 t_dx, t_dy, t_dt = diffs
                 if t_dt <= 0:
-                    raise "hey, it does happen"
+                    raise Exception("hey, it does happen")
 
                 # TODO: param
                 max_velocity = 3.
@@ -117,7 +117,9 @@ class InputProcessor:
                           focus_y=self.focus_y,
                           fade=self.fade)
 
-    # TODO: These are not atomic; this is bad.
+    # TODO: The thread reading the input may be different from the one updating
+    # the input, so this could lead to race conditions. Consider returning some
+    # sort of immutable InputState object.
     def on_touch_start(self, touches, t):
         """
         Args:
