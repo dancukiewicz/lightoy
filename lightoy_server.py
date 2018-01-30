@@ -5,13 +5,13 @@ import aiohttp.web
 import asyncio
 import numpy
 import os
-import serial
 import threading
 import time
 
 import color
 import handlers.console
 import handlers.input
+from location_model import Spiral
 from output import DummyOutput, SerialOutput
 from session import Session
 
@@ -28,38 +28,14 @@ NUM_LEDS = 300
 NO_SERIAL = True
 
 
-# TODO: split out into module
-def get_locations(session):
-    """Returns a 3-by-NUM_LEDS array representing the x,y,z positions of the
-    LEDs. Each dimension ranges from 0 to 1.
-    X: right, y: out from viewer, z: up
-    """
-    # orientation of spiral, looking from the top
-    # 1 for counterclockwise, -1 for clockwise
-    direction = -1
-
-    twists = session.global_params['twists'].get_value()
-    # angle in x-y plane swept between two consequent LEDs
-    theta_per_led = 2. * numpy.pi * twists / NUM_LEDS
-    thetas = numpy.array(range(NUM_LEDS)) * theta_per_led
-    locations = numpy.zeros((3, NUM_LEDS))
-    # X
-    locations[0, :] = numpy.cos(thetas * direction)
-    # Y
-    locations[1, :] = numpy.sin(thetas * direction)
-    # Z
-    locations[2, :] = numpy.linspace(-1., 1., NUM_LEDS)
-    return locations
-
-
-def render(session):
+def render(session, location_model):
     """
     Returns a 3-by-n array representing the final color of each of the n LEDs.
     """
     t = session.get_time()
     t_diff = session.get_time_delta(t)
     inputs = session.input_processor.get_state(t)
-    x = get_locations(session)
+    x = location_model.get_locations(session)
 
     effect = session.get_current_effect()
 
@@ -71,9 +47,9 @@ def render(session):
     return output
 
 
-def render_loop(session, output):
+def render_loop(session, location_model, output):
     while True:
-        rendered = render(session)
+        rendered = render(session, location_model)
         output.output(rendered)
         # Sleep to the next 1/MAX_REFRESH_RATE interval.
         refresh_interval = 1. / MAX_REFRESH_RATE
@@ -81,17 +57,6 @@ def render_loop(session, output):
         if sleep_time == 0:
             sleep_time = refresh_interval
         time.sleep(sleep_time)
-
-
-def get_out_data(session):
-    """
-    Returns a byte buffer representing the data that will be sent over serial
-        for this frame.
-    """
-    # TODO: needs work
-    out = SerialOutput(SERIAL_DEVICE, NUM_LEDS)
-    rendered = render(session)
-    return out._get_out_data(session)
 
 
 def get_template(template_name):
@@ -121,8 +86,10 @@ def main():
     else:
         output = SerialOutput(SERIAL_DEVICE, SERIAL_BAUD)
     session = Session(NUM_LEDS)
+    # TODO: the location model should be configurable.
+    location_model = Spiral(NUM_LEDS)
     render_thread = threading.Thread(target=render_loop,
-                                     args=(session, output))
+                                     args=(session, location_model, output))
     render_thread.start()
     event_loop = asyncio.get_event_loop()
     web_app = event_loop.run_until_complete(init_app(event_loop, session))

@@ -2,7 +2,7 @@ import colorsys
 import numpy
 
 
-"""All color inputs are 3-by-n arrays."""
+"""Color utilities. All color inputs are 3-by-n arrays."""
 
 
 def color_convert(orig, convert_fn):
