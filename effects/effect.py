@@ -1,8 +1,14 @@
 class Effect:
     """
-    TODO: docstring
+    An Effect is responsible for what to draw on the LED array, given
+    the input state, parameters and LED locations. render() performs the magic;
+    every effect should implement this.
+
+    An effect can have per-effect parameters, which the user can then tweak
+    in real time via the UI. init_params() should be overridden to provide any
+    desired parameters.
     """
-    # Dictionary of (parameter name => stateful parameter instance)
+    # Dictionary of (parameter name => stateful Parameter instance)
     params = {}
 
     # Dictionary representing the effect's state. No restrictions currently.
@@ -53,10 +59,11 @@ class Effect:
                Can be assumed to have millisecond accuracy.
             input: An InputState named tuple containing information about the
                current input.
-            params: TODO
+            param: A (name => Parameter) dictionary of the per-effect
+                parameters.
         Returns:
             An 3-by-n array representing the desired R, G, and B values for an
             LED that is present at a given point in space. These should range
             from 0 to 1.
         """
-        raise "Not implemented"
+        raise Exception("Not implemented")

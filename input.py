@@ -36,9 +36,8 @@ class InputProcessor:
         # Fade in/out effect. Increases from 0 to 1 when touch is applied,
         # and then drops to 0 when touch is released.
         self.fade = 0.
-        # The idea is for this to be something people can move around, with
-        # momentum.
-        # TODO: should it have mass when being moved around?
+        # The focus point is something people can move around, with
+        # momentum. Basically a generalized 2D scroll position.
         self.focus_x = 0.
         self.focus_y = 0.
         # For simulating momentum.
@@ -46,7 +45,6 @@ class InputProcessor:
         self.y_velocity = 0.
         # This records the value of the focus point when the touch was first
         # applied.
-        # TODO: more clear comment
         self.focus_x_offset = 0.
         self.focus_y_offset = 0.
 

@@ -48,13 +48,13 @@ async def handle_touch_move(msg, session):
 
 
 async def handle_touch_end(msg, session):
-    session.input_processor.on_touch_end(lightoy_server.get_server_time())
+    session.input_processor.on_touch_end(session.get_time())
     print("touch end:", msg)
     return pos([])
 
 
 async def handle_touch_cancel(msg, session):
-    session.input_processor.on_touch_end(lightoy_server.get_server_time())
+    session.input_processor.on_touch_end(session.get_time())
     print("touch end:", msg)
     return pos([])
 

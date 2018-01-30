@@ -1,5 +1,6 @@
 import numpy
 
+
 class Parameter:
     # Dict of (string => function) representing the actions that can be
     # performed for the effect. The corresponding function is called with

@@ -67,12 +67,10 @@ async def handle_update_params_request(request):
     session = request.app['session']
     data = await request.post()
     effect_name = data['effect']
-    # TODO: magic string, but breaking out into a constant wouldn't make sense.
     if effect_name == 'global':
         param_dict = session.global_params
     else:
         param_dict = session.effects[effect_name].params
-
     for param_name, param in param_dict.items():
         if param_name in data:
             assert issubclass(param.__class__, params.Scalar), \
