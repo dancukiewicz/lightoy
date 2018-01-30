@@ -3,6 +3,7 @@
 import aiohttp
 import aiohttp.web
 import asyncio
+import click
 import numpy
 import os
 import threading
@@ -15,17 +16,10 @@ from location_model import Spiral
 from output import DummyOutput, SerialOutput
 from session import Session
 
-
-# TODO: command-line arg
-HTTP_PORT = 8080
-# TODO: command-line arg or autodetect
-SERIAL_DEVICE = '/dev/ttyACM0'
-SERIAL_BAUD = 115200
+# The maximum rate (in Hz) at which the rendering is performed.
 MAX_REFRESH_RATE = 200
-# TODO: have Model class
+# The total number of LEDs.
 NUM_LEDS = 300
-# True to test out locally
-NO_SERIAL = True
 
 
 def render(session, location_model):
@@ -80,11 +74,17 @@ async def init_app(event_loop, session):
     return app
 
 
-def main():
-    if NO_SERIAL:
+@click.command()
+@click.option("--port", type=int, default=8080, help="Port for the web server")
+@click.option("--serial_device", default="/dev/ttyACM0")
+@click.option("--serial_baud", type=int, default=115200)
+@click.option("--no_serial", type=bool, default=False,
+              help="If true, no serial communication is performed.")
+def main(port, serial_device, serial_baud, no_serial):
+    if no_serial:
         output = DummyOutput()
     else:
-        output = SerialOutput(SERIAL_DEVICE, SERIAL_BAUD)
+        output = SerialOutput(serial_device, serial_baud)
     session = Session(NUM_LEDS)
     # TODO: the location model should be configurable.
     location_model = Spiral(NUM_LEDS)
@@ -93,7 +93,7 @@ def main():
     render_thread.start()
     event_loop = asyncio.get_event_loop()
     web_app = event_loop.run_until_complete(init_app(event_loop, session))
-    aiohttp.web.run_app(web_app)
+    aiohttp.web.run_app(web_app, port=port)
 
 
 if __name__ == "__main__":
