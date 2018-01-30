@@ -12,7 +12,7 @@ import time
 import color
 import handlers.console
 import handlers.input
-from output import SerialOutput
+from output import DummyOutput, SerialOutput
 from session import Session
 
 
@@ -21,12 +21,11 @@ HTTP_PORT = 8080
 # TODO: command-line arg or autodetect
 SERIAL_DEVICE = '/dev/ttyACM0'
 SERIAL_BAUD = 115200
-REFRESH_RATE = 200
-# TODO: command-line arg
+MAX_REFRESH_RATE = 200
+# TODO: have Model class
 NUM_LEDS = 300
-
 # True to test out locally
-NO_SERIAL = False
+NO_SERIAL = True
 
 
 # TODO: split out into module
@@ -60,7 +59,7 @@ def render(session):
     t = session.get_time()
     t_diff = session.get_time_delta(t)
     inputs = session.input_processor.get_state(t)
-    x = get_locations()
+    x = get_locations(session)
 
     effect = session.get_current_effect()
 
@@ -72,6 +71,18 @@ def render(session):
     return output
 
 
+def render_loop(session, output):
+    while True:
+        rendered = render(session)
+        output.output(rendered)
+        # Sleep to the next 1/MAX_REFRESH_RATE interval.
+        refresh_interval = 1. / MAX_REFRESH_RATE
+        sleep_time = refresh_interval - (time.time() % refresh_interval)
+        if sleep_time == 0:
+            sleep_time = refresh_interval
+        time.sleep(sleep_time)
+
+
 def get_out_data(session):
     """
     Returns a byte buffer representing the data that will be sent over serial
@@ -81,28 +92,6 @@ def get_out_data(session):
     out = SerialOutput(SERIAL_DEVICE, NUM_LEDS)
     rendered = render(session)
     return out._get_out_data(session)
-
-
-
-def render_loop(session):
-    if NO_SERIAL:
-        ser = None
-    else:
-        ser = serial.Serial(SERIAL_DEVICE, SERIAL_BAUD, timeout=None,
-                            write_timeout=None, xonxoff=False,
-                            rtscts=False, dsrdtr=False, inter_byte_timeout=None)
-    while True:
-        # Render the frame and send it out to the Teensy.
-        out_data = get_out_data(session)
-        if not NO_SERIAL:
-            ser.write(out_data)
-            ser.flush()
-        # Sleep to the next 1/REFRESH_RATE interval.
-        refresh_interval = 1. / REFRESH_RATE
-        sleep_time = refresh_interval - (time.time() % refresh_interval)
-        if sleep_time == 0:
-            sleep_time = refresh_interval
-        time.sleep(sleep_time)
 
 
 def get_template(template_name):
@@ -127,8 +116,13 @@ async def init_app(event_loop, session):
 
 
 def main():
+    if NO_SERIAL:
+        output = DummyOutput()
+    else:
+        output = SerialOutput(SERIAL_DEVICE, SERIAL_BAUD)
     session = Session(NUM_LEDS)
-    render_thread = threading.Thread(target=render_loop, args=(session,))
+    render_thread = threading.Thread(target=render_loop,
+                                     args=(session, output))
     render_thread.start()
     event_loop = asyncio.get_event_loop()
     web_app = event_loop.run_until_complete(init_app(event_loop, session))
