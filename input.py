@@ -89,7 +89,7 @@ class InputProcessor:
                 if t_dt <= 0:
                     raise Exception("hey, it does happen")
 
-                # TODO: param
+                # TODO: make this a param
                 max_velocity = 3.
 
                 self.x_velocity = t_dx / t_dt

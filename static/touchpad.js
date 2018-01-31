@@ -41,11 +41,10 @@ function refresh(pos) {
     });
 }
 
-// TODO: comment
-function convertTouch(touch) {
+function getRelativeTouchCoordinates(touch) {
     return {
-	'x': touch.pageX / document.body.clientWidth,
-	'y': touch.pageY / document.body.clientHeight
+	    'x': touch.pageX / document.body.clientWidth,
+	    'y': touch.pageY / document.body.clientHeight
     }
 }
 
@@ -53,7 +52,8 @@ document.body.addEventListener('touchstart', function(ev) {
     ev.preventDefault();
     var out = {
 	'ev': 'touchstart',
-	'touches': Array.prototype.map.call(ev.touches, convertTouch)
+	'touches': Array.prototype.map.call(ev.touches,
+	    getRelativeTouchCoordinates)
     };
     ws.send(JSON.stringify(out));
     ws.send(JSON.stringify(out));
@@ -63,7 +63,8 @@ document.body.addEventListener('touchmove', function(ev) {
     ev.preventDefault();
     var out = {
 	'ev': 'touchmove',
-	'touches': Array.prototype.map.call(ev.touches, convertTouch)
+	'touches': Array.prototype.map.call(ev.touches,
+	    getRelativeTouchCoordinates)
     };
     ws.send(JSON.stringify(out));
 });
@@ -72,7 +73,8 @@ document.body.addEventListener('touchend', function(ev) {
     ev.preventDefault();
     var out = {
 	'ev': 'touchend',
-	'touches': Array.prototype.map.call(ev.touches, convertTouch)
+	'touches': Array.prototype.map.call(ev.touches,
+	    getRelativeTouchCoordinates)
     };
     ws.send(JSON.stringify(out));
 });
@@ -81,7 +83,8 @@ document.body.addEventListener('touchcancel', function(ev) {
     ev.preventDefault();
     var out = {
 	'ev': 'touchcancel',
-	'touches': Array.prototype.map.call(ev.touches, convertTouch)
+	'touches': Array.prototype.map.call(ev.touches,
+	    getRelativeTouchCoordinates)
     };
     console.log(out);
     ws.send(JSON.stringify(out));

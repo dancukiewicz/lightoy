@@ -86,7 +86,7 @@ def main(port, serial_device, serial_baud, no_serial):
     else:
         output = SerialOutput(serial_device, serial_baud)
     session = Session(NUM_LEDS)
-    # TODO: the location model should be configurable.
+    # TODO: the choice of location model should be configurable.
     location_model = Spiral(NUM_LEDS)
     render_thread = threading.Thread(target=render_loop,
                                      args=(session, location_model, output))

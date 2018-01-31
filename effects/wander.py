@@ -11,7 +11,9 @@ class Wander(Effect):
 
     The color is incremented by the vector. If one of the colors reaches the
     low or high bound, the sign of that component of the vector is reversed.
-    # TODO: write this more coherently
+
+    Basically, it's like that 2D screen saver with some logo bouncing around the
+    screen, but here it's a color bouncing around in 3D color space.
     """
     def init_params(self):
         return {
