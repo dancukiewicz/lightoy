@@ -4,6 +4,10 @@ import pystache
 
 import lightoy_server
 
+"""
+Functions to handle HTTP/websocket requests for the touch input.
+"""
+
 
 async def handle_touchpad_request(request):
     template = lightoy_server.get_template('touchpad')

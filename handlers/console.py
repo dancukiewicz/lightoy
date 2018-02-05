@@ -5,6 +5,9 @@ import pystache
 import lightoy_server
 import params
 
+"""
+Functions to handle HTTP/websocket requests for the web console. 
+"""
 
 
 async def handle_console_request(request):

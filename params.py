@@ -1,34 +1,35 @@
 import numpy
 
 
-class Parameter:
+class Parameter(object):
     """
     A parameter holds a value that can be changed at any time by the user.
     Parameters are used by effects to determine how they're drawn.
     Additionally, there are global parameters that are applicable to every
     effect.
+
+    Parameters can also have actions, which are functions that mutate the
+    value in the parameter.
     """
     # Each parameter instance keeps a value object.
     value = None
 
     # Dict of (string => function) representing the actions that can be
     # performed for the effect. The corresponding function is called with
-    # self as an argument.
+    # self as the only argument.
     actions = {}
-
-
-
-    def do_action(self, action_name):
-        if action_name not in self.actions:
-            print("Requested action (%s) not found in actions for %s"
-                  % (action_name, self.__class__.__name__))
-        self.actions[action_name](self)
 
     def set_value(self, value):
         self.value = value
 
     def get_value(self):
         return self.value
+
+    def do_action(self, action_name):
+        if action_name not in self.actions:
+            print("Requested action (%s) not found in actions for %s"
+                  % (action_name, self.__class__.__name__))
+        self.actions[action_name](self)
 
 
 class Scalar(Parameter):

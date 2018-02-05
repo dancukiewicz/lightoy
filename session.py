@@ -1,14 +1,3 @@
-"""
-The Session class is used to hold the current state and configuration
-of the lights.
-
-This includes:
-    * The current parameters.
-    * Effect instances, which may have per-effect state.
-    * Which effect is current.
-    * The current input state.
-    * Timing-related information.
-"""
 import effects
 import input
 import params
@@ -16,6 +5,17 @@ import time
 
 
 class Session(object):
+    """
+    The Session class is used to hold the current state and configuration
+    of the lights.
+
+    This includes:
+        * The current parameters.
+        * Effect instances, which may have per-effect state.
+        * Which effect is current.
+        * The current input state.
+        * Timing-related information.
+    """
     def __init__(self, num_leds):
         self.num_leds = num_leds
         self.effects = effects.create_effects(num_leds)
