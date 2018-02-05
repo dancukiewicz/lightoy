@@ -1,6 +1,15 @@
 /* 
- * 
- * TODO: license, etc
+ * This firmware is designed to be used with a Teensy 3.x board. It uses the
+ * OctoWS2811 library to drive an array of WS2811 LEDs. I would recommend using
+ * this with the OctoWS2811 adapter:
+ *
+ * https://www.pjrc.com/store/octo28_adaptor.html
+ *
+ * It listens on the USB UART and waits for the host to
+ * send a predefined header ("head"), followed by the 3-byte GRB color values
+ * of the individual LEDs. At this point, the Teensy pushes the color values
+ * to the LED array. The OctoWS2811 library does the heavy lifting in terms of
+ * communication.
  */
  
 #include <OctoWS2811.h>

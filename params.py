@@ -2,13 +2,21 @@ import numpy
 
 
 class Parameter:
+    """
+    A parameter holds a value that can be changed at any time by the user.
+    Parameters are used by effects to determine how they're drawn.
+    Additionally, there are global parameters that are applicable to every
+    effect.
+    """
+    # Each parameter instance keeps a value object.
+    value = None
+
     # Dict of (string => function) representing the actions that can be
     # performed for the effect. The corresponding function is called with
     # self as an argument.
     actions = {}
 
-    # each instance keeps a value object.
-    value = None
+
 
     def do_action(self, action_name):
         if action_name not in self.actions:
@@ -24,8 +32,8 @@ class Parameter:
 
 
 class Scalar(Parameter):
-    """Defines a mutable scalar parameter that goes into an effect, along with its
-    current state."""
+    """Defines a mutable scalar parameter that goes into an effect,
+    along with its current state."""
     actions = {"reset": lambda self: self.on_reset()}
 
     def __init__(self, min_value, max_value, default_value):
