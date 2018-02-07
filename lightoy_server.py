@@ -62,8 +62,8 @@ def get_template(template_name):
 async def init_app(event_loop, session):
     app = aiohttp.web.Application(loop=event_loop)
     app['session'] = session
-    app.router.add_get('/', handlers.input.handle_touchpad_request)
-    app.router.add_get('/console', handlers.console.handle_console_request)
+    app.router.add_get('/touch', handlers.input.handle_touchpad_request)
+    app.router.add_get('/', handlers.console.handle_console_request)
     app.router.add_post('/console/effect',
                         handlers.console.handle_change_effect_request)
     app.router.add_post('/console/params',
