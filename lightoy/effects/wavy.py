@@ -1,13 +1,13 @@
 import numpy
 
-import color
-from effects.effect import Effect
-import params
+import lightoy.color
+from lightoy.effects import Effect
+import lightoy.params
 
 
 class Wavy(Effect):
     def init_params(self):
-        return {'periods': params.RandomArray(self.n_leds)}
+        return {'periods': lightoy.params.RandomArray(self.n_leds)}
 
     @classmethod
     def render(cls, x, t, t_diff, inputs, param, state):
@@ -30,4 +30,4 @@ class Wavy(Effect):
         v = ((0.25 + 0.75 * inputs.fade) *
              numpy.multiply(brightness, pos_mask))
         hsv = numpy.vstack([h, s, v])
-        return color.hsv_to_rgb(hsv)
+        return lightoy.color.hsv_to_rgb(hsv)

@@ -1,10 +1,10 @@
-from effects.effect import Effect
+from lightoy.effects.effect import Effect
 
-from effects.misc import *
+from lightoy.effects.misc import *
 
-from effects.cylinder import Cylinder
-from effects.wander import Wander
-from effects.wavy import Wavy
+from lightoy.effects.cylinder import Cylinder
+from lightoy.effects.wander import Wander
+from lightoy.effects.wavy import Wavy
 
 
 def create_effects(num_leds):

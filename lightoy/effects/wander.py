@@ -1,7 +1,7 @@
 import numpy
 
-from effects.effect import Effect
-import params
+from lightoy.effects import Effect
+import lightoy.params
 
 
 class Wander(Effect):
@@ -17,7 +17,7 @@ class Wander(Effect):
     """
     def init_params(self):
         return {
-            'speed': params.Scalar(0., 2., 0.3),
+            'speed': lightoy.params.Scalar(0., 2., 0.3),
             }
 
     def init_state(self):

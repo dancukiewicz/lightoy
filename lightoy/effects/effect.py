@@ -1,4 +1,4 @@
-class Effect:
+class Effect(object):
     """
     An Effect is responsible for what to draw on the LED array, given
     the input state, parameters and LED locations. render() performs the magic;
@@ -7,6 +7,10 @@ class Effect:
     An effect can have per-effect parameters, which the user can then tweak
     in real time via the UI. init_params() should be overridden to provide any
     desired parameters.
+
+    Additionally, an effect can have a state, which is represented by a dict.
+    init_state() can be overridden to set the initial state, and update_state()
+    can be overridden to update the state before each rendering action.
     """
     # Dictionary of (parameter name => stateful Parameter instance)
     params = {}

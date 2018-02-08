@@ -3,7 +3,7 @@ import json
 import pystache
 
 import lightoy_server
-import params
+import lightoy.params
 
 """
 Functions to handle HTTP/websocket requests for the web console. 
@@ -34,9 +34,8 @@ async def handle_console_request(request):
             format_param_data(param, param_name)
             for param_name, param in param_dict.items()
             # for now we only render scalar params
-            if issubclass(param.__class__, params.Scalar)
+            if issubclass(param.__class__, lightoy.params.Scalar)
             ]
-
 
     effect_param_data = get_param_data(current_effect.params)
     global_param_data = get_param_data(session.global_params)

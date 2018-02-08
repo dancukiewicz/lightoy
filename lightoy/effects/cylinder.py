@@ -1,9 +1,9 @@
 import numpy
 
-import color
-from effects.effect import Effect
-import geometry
-import params
+import lightoy.color
+from lightoy.effects import Effect
+import lightoy.geometry
+import lightoy.params
 
 
 class Cylinder(Effect):
@@ -12,17 +12,17 @@ class Cylinder(Effect):
     """
     def init_params(self):
         return {
-            't_shift': params.Scalar(0., 100., 2.),
-            'h_shift': params.Scalar(0., 100., 1.),
-            't_period': params.Scalar(0., 100., 2.),
-            'h_period': params.Scalar(0., 100., 4.),
+            't_shift': lightoy.params.Scalar(0., 100., 2.),
+            'h_shift': lightoy.params.Scalar(0., 100., 1.),
+            't_period': lightoy.params.Scalar(0., 100., 2.),
+            'h_period': lightoy.params.Scalar(0., 100., 4.),
 
-            'speed': params.Scalar(0., 100., 2.)
+            'speed': lightoy.params.Scalar(0., 100., 2.)
         }
 
     @classmethod
     def render(cls, xyz, t, t_diff, inputs, param, state):
-        rth = geometry.cartesian_to_cylindrical(xyz)
+        rth = lightoy.geometry.cartesian_to_cylindrical(xyz)
         theta = rth[1, :]
         h = rth[2, :]
         t_shift = param['t_shift'].get_value()
@@ -41,4 +41,4 @@ class Cylinder(Effect):
                                      + t_shift * t * (speed - 0.1))
                            + numpy.sin((h_period * h) + h_shift * t * speed))
         hsv = numpy.vstack([hue, sat, val])
-        return color.hsv_to_rgb(hsv)
+        return lightoy.color.hsv_to_rgb(hsv)

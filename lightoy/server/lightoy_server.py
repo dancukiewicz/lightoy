@@ -9,12 +9,12 @@ import os
 import threading
 import time
 
-import color
-import handlers.console
-import handlers.input
-from location_model import Spiral
-from output import DummyOutput, SerialOutput
-from session import Session
+import lightoy.color
+import lightoy.server.handlers.console
+import lightoy.server.handlers.input
+from lightoy.location_model import Spiral
+from lightoy.output import DummyOutput, SerialOutput
+from lightoy.session import Session
 
 # The maximum rate (in Hz) at which the rendering is performed.
 MAX_REFRESH_RATE = 200
@@ -35,7 +35,7 @@ def render(session, location_model):
 
     output = effect.do_render(x, t, t_diff, inputs)
     numpy.clip(output, 0., 1., out=output)
-    output = color.gamma_correct(output,
+    output = lightoy.color.gamma_correct(output,
                                  session.global_params['gamma'].get_value())
     output *= session.global_params['brightness'].get_value()
     return output
@@ -62,14 +62,18 @@ def get_template(template_name):
 async def init_app(event_loop, session):
     app = aiohttp.web.Application(loop=event_loop)
     app['session'] = session
-    app.router.add_get('/touch', handlers.input.handle_touchpad_request)
-    app.router.add_get('/', handlers.console.handle_console_request)
+    app.router.add_get('/touch',
+            lightoy.server.handlers.input.handle_touchpad_request)
+    app.router.add_get('/',
+            lightoy.server.handlers.console.handle_console_request)
     app.router.add_post('/console/effect',
-                        handlers.console.handle_change_effect_request)
+            lightoy.server.handlers.console.handle_change_effect_request)
     app.router.add_post('/console/params',
-                        handlers.console.handle_update_params_request)
-    app.router.add_get('/console_ws', handlers.console.handle_websocket_request)
-    app.router.add_get('/touch_ws', handlers.input.handle_websocket_request)
+            lightoy.server.handlers.console.handle_update_params_request)
+    app.router.add_get('/console_ws',
+            lightoy.server.handlers.console.handle_websocket_request)
+    app.router.add_get('/touch_ws',
+            lightoy.server.handlers.input.handle_websocket_request)
     app.router.add_static('/static', 'static', name='static')
     return app
 

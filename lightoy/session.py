@@ -1,7 +1,8 @@
-import effects
-import input
-import params
 import time
+
+import lightoy.effects
+import lightoy.input
+import lightoy.params
 
 
 class Session(object):
@@ -18,10 +19,10 @@ class Session(object):
     """
     def __init__(self, num_leds):
         self.num_leds = num_leds
-        self.effects = effects.create_effects(num_leds)
+        self.effects = lightoy.effects.create_effects(num_leds)
         self.cur_effect_name = sorted(self.effects.keys())[0]
         self.global_params = self._create_global_params()
-        self.input_processor = input.InputProcessor()
+        self.input_processor = lightoy.input.InputProcessor()
         self.start_time = time.time()
         self.last_t = None
 
@@ -54,19 +55,17 @@ class Session(object):
     def get_current_effect_name(self):
         return self.cur_effect_name
 
-
-
     @classmethod
     def _create_global_params(cls):
         # TODO: have consistent story of what global parameters are for.
         return {
             # TODO: looks like we should have per-model params.
             # Total number of twists taken by the spiral.
-            'twists': params.Scalar(0., 30., 17.55),
+            'twists': lightoy.params.Scalar(0., 30., 17.55),
             # adjusts the gamma curve:
             # adjusted_brightness = original_brightness ** gamma
-            'gamma': params.Scalar(0., 100., 3.),
+            'gamma': lightoy.params.Scalar(0., 100., 3.),
             # scales the brightness of the LEDs
-            'brightness': params.Scalar(0., 1., 0.3),
+            'brightness': lightoy.params.Scalar(0., 1., 0.3),
         }
 

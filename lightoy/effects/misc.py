@@ -1,6 +1,6 @@
 import numpy
 
-from effects.effect import Effect
+from lightoy.effects import Effect
 
 
 class VerticalWipe(Effect):

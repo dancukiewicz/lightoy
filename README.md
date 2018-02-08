@@ -15,7 +15,7 @@ In order to drive the array, the server sends the colors of each light over via 
 
 ## Running
 
-Requires Python 3 and the `aiohttp`, `click` and `numpy` packages. To run:
+Requires Python 3 and the `aiohttp`, `click` , `numpy` and `pyserial` packages. To run:
 
 ```python
 python lightoy_server.py {SERIAL_DEVICE} 
