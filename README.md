@@ -15,13 +15,14 @@ In order to drive the array, the server sends the colors of each light over via 
 
 ## Running
 
-Requires Python 3 and the `aiohttp`, `click` , `numpy` and `pyserial` packages. To run:
+Requires Python 3. To run:
 
-```python
-python lightoy_server.py {SERIAL_DEVICE} 
+```bash
+pip install -r requirements.txt
+python lightoy/server/lightoy_server.py {SERIAL_DEVICE} 
 ```
 
-where `{SERIAL_DEVICE}` is the device name of the Teensy's USB UART. For me, in Ubuntu 16.04, this shows up as `dev/ttyACM0`.
+where `{SERIAL_DEVICE}` is the device name of the Teensy's USB UART. For me, in Ubuntu 16.04, this shows up as `/dev/ttyACM0`.
 
 ## Creating effects
 

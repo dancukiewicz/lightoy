@@ -2,7 +2,7 @@ import aiohttp
 import json
 import pystache
 
-import lightoy_server
+from lightoy.server import lightoy_server
 
 """
 Functions to handle HTTP/websocket requests for the touch input.

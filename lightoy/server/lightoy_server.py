@@ -64,7 +64,7 @@ async def init_app(event_loop, session):
     app['session'] = session
     app.router.add_get('/touch',
             lightoy.server.handlers.input.handle_touchpad_request)
-    app.router.add_get('/',
+    app.router.add_get('/console',
             lightoy.server.handlers.console.handle_console_request)
     app.router.add_post('/console/effect',
             lightoy.server.handlers.console.handle_change_effect_request)
@@ -74,7 +74,7 @@ async def init_app(event_loop, session):
             lightoy.server.handlers.console.handle_websocket_request)
     app.router.add_get('/touch_ws',
             lightoy.server.handlers.input.handle_websocket_request)
-    app.router.add_static('/static', 'static', name='static')
+    app.router.add_static('/static', 'lightoy/server/static', name='static')
     return app
 
 
@@ -83,7 +83,7 @@ async def init_app(event_loop, session):
 @click.option("--serial_device", default="/dev/ttyACM0")
 @click.option("--serial_baud", type=int, default=115200)
 @click.option("--no_serial", type=bool, default=False,
-              help="If true, no serial communication is performed.")
+              help="If True, no serial communication is performed.")
 def main(port, serial_device, serial_baud, no_serial):
     if no_serial:
         output = DummyOutput()

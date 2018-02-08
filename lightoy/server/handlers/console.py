@@ -2,7 +2,7 @@ import aiohttp
 import json
 import pystache
 
-import lightoy_server
+from lightoy.server import lightoy_server
 import lightoy.params
 
 """
@@ -60,7 +60,7 @@ async def handle_console_request(request):
 async def handle_change_effect_request(request):
     session = request.app['session']
     data = await request.post()
-    session.set_current_effect(data['effect'])
+    session.set_current_effect_name(data['effect'])
     return aiohttp.web.Response(status=302,
                                 headers={'Location': '/console'})
 
@@ -75,7 +75,7 @@ async def handle_update_params_request(request):
         param_dict = session.effects[effect_name].params
     for param_name, param in param_dict.items():
         if param_name in data:
-            assert issubclass(param.__class__, params.Scalar), \
+            assert issubclass(param.__class__, lightoy.params.Scalar), \
                 "non-scalar params unsupported"
             value = float(data[param_name])
             print("setting param: %s to %f" % (param_name, value))
