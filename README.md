@@ -2,11 +2,11 @@
 
 ...is a tool for creating, running and interacting with effects on RGB LED arrays, like those using the WS2811 chip. Here's an example:
 
-TODO: upload to youtube
+https://www.youtube.com/watch?v=0nlqzooBqwY
 
 It runs a web server (by default on port 8080), which exposes these endpoints:
 
-* `/`: Returns a console page, which lets the user change effects and tweak parameters that change how the effects are rendered.
+* `/console`: Returns a console page, which lets the user change effects and tweak parameters that change how the effects are rendered.
 * `/touch`: Returns a blank page, which responds to touch events. These events
 are then sent to a server via a websocket connection, and effects can use these
 touch events when rendering.
